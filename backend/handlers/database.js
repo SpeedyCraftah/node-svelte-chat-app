@@ -17,13 +17,13 @@ db.prepare(`CREATE TABLE IF NOT EXISTS users(
     mfa_secret TEXT
 )`).run();
 
-db.prepare(`CREATE TABLE IF NOT EXISTS messages(
+db.prepare(`CREATE TABLE IF NOT EXISTS attachments(
     id VARCHAR(36) PRIMARY KEY,
-    channel_id VARCHAR(36),
-    user_id VARCHAR(36),
+    resource_id VARCHAR(36),
     date UNSIGNED BIGINT,
-    type UNSIGNED TINYINT,
-    content TEXT
+    size_bytes UNSIGNED BIGINT,
+    mime_type TEXT,
+    name TEXT
 )`).run();
 
 db.prepare(`CREATE TABLE IF NOT EXISTS images(
