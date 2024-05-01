@@ -39,7 +39,15 @@ app.post("/api/dms/:channel_id/messages", {
             properties: {
                 type: { enum: [1, 2] },
                 content: { type: "string", maxLength: 500, minLength: 1 },
-                nonce: { type: "number" }
+                nonce: { type: "number" },
+                attachments: { type: "array", items: { 
+                    type: "object",
+                    properties: {
+                        name: { type: "string", minLength: 1 },
+                        mimetype: { type: "string", minLength: 1 }
+                    },
+                    required: ["name", "mimetype"]
+                }}
             },
             required: ["type", "content"]
         }
