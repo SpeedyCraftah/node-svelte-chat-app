@@ -87,6 +87,7 @@ module.exports.users = {
             created_date: Date.now(),
             first_name, username, type,
             password_encoded: await bcrypt.hash(password_text, this.users.PASSWORD_SALT_ROUNDS),
+            avatar_url: "/avatars/avatar.jpg", // Add default avatar for now.
             mfa_secret: null
         };
 
