@@ -17,6 +17,15 @@ db.prepare(`CREATE TABLE IF NOT EXISTS users(
     mfa_secret TEXT
 )`).run();
 
+db.prepare(`CREATE TABLE IF NOT EXISTS messages(
+    id VARCHAR(36) PRIMARY KEY,
+    channel_id VARCHAR(36),
+    user_id VARCHAR(36),
+    date UNSIGNED BIGINT,
+    type UNSIGNED TINYINT,
+    content TEXT
+)`).run();
+
 db.prepare(`CREATE TABLE IF NOT EXISTS attachments(
     id VARCHAR(36) PRIMARY KEY,
     resource_id VARCHAR(36),
@@ -24,13 +33,6 @@ db.prepare(`CREATE TABLE IF NOT EXISTS attachments(
     size_bytes UNSIGNED BIGINT,
     mime_type TEXT,
     name TEXT
-)`).run();
-
-db.prepare(`CREATE TABLE IF NOT EXISTS images(
-    id VARCHAR(36) PRIMARY KEY,
-    user_id VARCHAR(36),
-    channel_id VARCHAR(36),
-    message_id VARCHAR(36)
 )`).run();
 
 db.prepare(`CREATE TABLE IF NOT EXISTS dm_channels(
