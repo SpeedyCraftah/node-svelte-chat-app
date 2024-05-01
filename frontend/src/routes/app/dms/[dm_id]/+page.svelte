@@ -51,16 +51,6 @@
             else typingText = `${typingUsers.slice(0, -1).join(", ")} and ${typingUsers[typingUsers.length - 1].user.username} are typing...`;
         }
     });
-
-    /*$: $usersTypingStore, (() => {
-        console.log("woah");
-        const typingUsers = $usersTypingStore;
-        if (!typingUsers.length) typingText = "";
-        else {
-            if (typingUsers.length === 1) typingText = `${typingUsers[0].user.username} is typing...`;
-            else typingText = `${typingUsers.slice(0, -1).join(", ")} and ${typingUsers[typingUsers.length - 1].user.username} are typing...`;
-        }
-    });*/
 </script>
 
 <div class="chat-container">
