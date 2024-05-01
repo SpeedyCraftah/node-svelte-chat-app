@@ -91,7 +91,7 @@ module.exports.users = {
             mfa_secret: null
         };
 
-        db.prepare("INSERT INTO users(id,created_date,first_name,username,type,password_encoded,mfa_secret) VALUES(?,?,?,?,?,?,?)").run(user.id, user.created_date, user.first_name, user.username, user.type, user.password_encoded, user.mfa_secret);
+        db.prepare("INSERT INTO users(id,created_date,first_name,username,type,password_encoded,mfa_secret,avatar_url) VALUES(?,?,?,?,?,?,?,?)").run(user.id, user.created_date, user.first_name, user.username, user.type, user.password_encoded, user.mfa_secret, user.avatar_url);
         return user;
     }
 };
