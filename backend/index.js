@@ -10,13 +10,15 @@ module.exports.wss = wss;
 
 // Setup the static middleware functions.
 app.register(require('@fastify/static'), {
-    root: [path.join(__dirname, '../static'), path.join(__dirname, './data/static')],
+    root: [path.join(__dirname, '../static'), path.join(__dirname, './static')],
     prefix: '/'
 });
 
 app.register(require("@fastify/cors"), {
     origin: ["http://localhost:5173", "http://localhost:4173"]
 });
+
+app.register(require('@fastify/multipart'), {});
 
 // Import and setup the middleware functions.
 require("./middleware/authentication");
