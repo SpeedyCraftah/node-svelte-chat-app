@@ -29,7 +29,7 @@ db.prepare(`CREATE TABLE IF NOT EXISTS messages(
 db.prepare(`CREATE TABLE IF NOT EXISTS attachments(
     id VARCHAR(36) PRIMARY KEY,
     resource_id VARCHAR(36),
-    date UNSIGNED BIGINT,
+    created_date UNSIGNED BIGINT,
     size_bytes UNSIGNED BIGINT,
     mime_type TEXT,
     name TEXT
@@ -92,6 +92,22 @@ module.exports.users = {
 
         db.prepare("INSERT INTO users(id,created_date,first_name,username,type,password_encoded,mfa_secret) VALUES(?,?,?,?,?,?,?)").run(user.id, user.created_date, user.first_name, user.username, user.type, user.password_encoded, user.mfa_secret);
         return user;
+    }
+};
+
+module.exports.attachments = {
+    create: (resource_id, size_bytes, mime_type, name) => {
+        const attachment = {
+            id: crypto.randomUUID(),
+            created_date: Date.now(),
+            resource_id,
+            size_bytes,
+            mime_type,
+            name
+        };
+
+        db.prepare("INSERT INTO attachments(id,created_date,resource_id,size_bytes,mime_type,name) VALUES(?,?,?,?,?,?)").run(attachment.id, attachment.created_date, attachment.resource_id, attachment.size_bytes, attachment.mime_type, attachment.name);
+        return attachment;
     }
 };
 
