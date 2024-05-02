@@ -1,4 +1,7 @@
 <script lang="ts">
+    // Import CSS components.
+    import "../../../../../static/css/font-awesome.css";
+
     import { fullscreenImageStore } from "../../app-global";
     import { currentChannelParsedMessagesStore, currentChannelStore, doDMMessageSend, usersTypingStore } from "./script";
     import { API } from "../../../../types/api";
@@ -110,7 +113,7 @@
         {/each}
     </div>
 
-    <div class="chat-input" on:drop={handleFileDrop} on:dragover={(e) => e.preventDefault()}>
+    <div class="chat-input" on:drop={handleFileDrop} on:dragover={(e) => e.preventDefault()} role="none">
         <span style="visibility: {typingText ? "visible" : "hidden"};">{typingText || "A"}</span>
 
         <div style="width: 100%; display: flex; justify-content: space-around;">
@@ -128,7 +131,7 @@
             {#each messageAttachments as attachment, i}
                 <div class="chat-input-attachments-container" title={attachment.file.name}>
                     <button on:click={() => { messageAttachments.splice(i, 1); messageAttachments = messageAttachments } }>🗑️</button>
-                    <img width="100" height="100" src={attachment.preview_data || "/logos/file-generic.png"} />
+                    <img alt="preview" width="100" height="100" src={attachment.preview_data || "/logos/file-generic.png"} />
                 </div>
             {/each}
         </div>
@@ -136,8 +139,6 @@
 </div>
 
 <style>
-    @import url('../../../../../static/css/font-awesome.css');
-    
     p, span {
         font-family: "Roboto", sans-serif;
         color: rgb(235, 235, 235);
