@@ -16,7 +16,12 @@ export namespace UITypes {
     export interface UserTyping {
         user: API.User,
         timeout: number
-    }
+    };
+
+    export interface MessageAttachment {
+        file: File,
+        preview_data?: string
+    };
 };
 
 export const MessageTypeColour = {
