@@ -4,8 +4,10 @@
     import { API } from "../../../../types/api";
     import { MessageTypeColour, UITypes } from "../../../../types/ui";
     import { accessibleClickHandler } from "../../misc/accessibility";
+    import { readClientImageAsB64 } from "../../misc/attachments";
 
     let messageTextContent: string = "";
+    let messageAttachments: UITypes.MessageAttachment[] = [];
 
     function handleInputTyping(event: KeyboardEvent) {
         if (event.key === "Enter" && !event.shiftKey) {
@@ -32,6 +34,38 @@
         messageTextContent= "";
 
         doDMMessageSend(messageContent, API.MessageType.TEXT);
+    }
+
+    async function handleFileUpload(files: FileList) {
+        if (messageAttachments.length + files.length >= 10) {
+            return alert("Cannot upload more than 10 attachments in one message!");
+        }
+
+        for (const file of files) {
+            const attachment: UITypes.MessageAttachment = { file };
+
+            // Show a preview for files which are images.
+            if (file.type.startsWith("image/")) {
+                attachment.preview_data = await readClientImageAsB64(file);
+            }
+
+            messageAttachments.push(attachment);
+            messageAttachments = messageAttachments;
+        }
+    }
+
+    function handleFileDrop(event: DragEvent) {
+        event.preventDefault();
+        if (!event.dataTransfer || !event.dataTransfer.files.length) return;
+        
+        handleFileUpload(event.dataTransfer.files);
+    }
+
+    let uploadElement: HTMLInputElement;
+    function handleFileManualSubmit() {
+        if (!uploadElement.files || !uploadElement.files.length) return;
+
+        handleFileUpload(uploadElement.files);
     }
 
     // Scroll to bottom on new message.
@@ -76,18 +110,33 @@
         {/each}
     </div>
 
-    <div class="chat-input">
+    <div class="chat-input" on:drop={handleFileDrop} on:dragover={(e) => e.preventDefault()}>
         <span style="visibility: {typingText ? "visible" : "hidden"};">{typingText || "A"}</span>
 
         <div style="width: 100%; display: flex; justify-content: space-around;">
             <textarea id="message-input" bind:value={messageTextContent} placeholder="Message {$currentChannelStore ? $currentChannelStore.user.first_name : "content"}" maxlength="500" on:keypress={handleInputTyping}></textarea>
-            <i style="display: none;"id="message-submit" class="gg-arrow-right-r" on:click={handleSendPress} on:keypress={accessibleClickHandler} tabindex=0 role="button"></i>
+            <div class="chat-input-actions">
+                <i class="fa fa-upload" on:click={() => uploadElement.click()} on:keypress={accessibleClickHandler} tabindex=0 role="button"></i>
+                <i class="fa fa-paper-plane" on:click={handleSendPress} on:keypress={accessibleClickHandler} tabindex=0 role="button"></i>
+            </div>
+
+            <!-- Hidden upload element for icon. -->
+            <input style="display: none;" type="file" multiple on:change={handleFileManualSubmit} bind:this={uploadElement} />
+        </div>
+
+        <div class="chat-input-attachments" style="display: {messageAttachments.length ? "flex" : "none"};">
+            {#each messageAttachments as attachment, i}
+                <div class="chat-input-attachments-container" title={attachment.file.name}>
+                    <button on:click={() => { messageAttachments.splice(i, 1); messageAttachments = messageAttachments } }>🗑️</button>
+                    <img width="100" height="100" src={attachment.preview_data || "/logos/file-generic.png"} />
+                </div>
+            {/each}
         </div>
     </div>
 </div>
 
 <style>
-    @import url('/static/icons/arrow-right-r.css');
+    @import url('../../../../../static/css/font-awesome.css');
     
     p, span {
         font-family: "Roboto", sans-serif;
@@ -161,23 +210,74 @@
         height: 90%;
     }
 
-    .chat-input i {
-        --ggs: 1.7;
-        margin-left: 15px;
-        margin-right: 4px;
-        color: rgb(219, 219, 219);
-        transition: transform 0.05s ease;
+    .chat-input-actions {
+        display: flex;
+        align-items: center;
+        flex-direction: row;
+        gap: 10px;
+        margin-left: 8px;
     }
 
-    .chat-input i:active {
-        transform: scale(1.5);
+    .chat-input-actions i {
+        padding: 4px;
+        font-size: 36px;
+        color: rgb(218, 218, 218);
+        border: solid;
+        border-width: 1px;
+        border-radius: 5px;
     }
 
-    @media (hover: hover) {
-        .chat-input i:hover {
-            color: rgb(248, 248, 248);
-            --ggs: 1.8;
-        }
+    .chat-input-actions i:hover {
+        cursor: pointer;
+        color: rgb(252, 252, 252);
+    }
+
+    .chat-input-attachments {
+        display: flex;
+        gap: 10px;
+        flex-direction: row;
+        justify-content: flex-start;
+        margin-top: 8px;
+        background-color: #141414;
+        padding: 10px;
+        border-radius: 12px;
+        border-color: #333538;
+        border-style: solid;
+        border-width: 1px;
+        overflow-x: auto;
+        position: relative;
+    }
+
+    .chat-input-attachments::-webkit-scrollbar {
+        height: 10px;
+    }
+
+    .chat-input-attachments img {
+        border: solid;
+        border-width: 0px;
+        border-radius: 15px;
+    }
+
+    .chat-input-attachments-container {
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .chat-input-attachments-container button {
+        margin: 0;
+        margin-top: 5px;
+        margin-right: 8px;
+        position: absolute;
+        width: 35px;
+        height: 30px;
+        color: white;
+        background-color: rgba(172, 2, 2, 0.726);
+        border: none;
+    }
+    
+    .chat-input-attachments-container button:hover {
+        cursor: pointer;
+        background-color: rgba(172, 2, 2, 0.945);
     }
 
     .chat-input textarea {
@@ -189,7 +289,7 @@
         border-color: #333538;
         border-radius: 7px;
         border-width: 1px;
-        height: 62%;
+        height: 35px;
 
         outline: none;
         color: rgb(202, 202, 202);
