@@ -13,6 +13,6 @@ A full-stack chat app which supports direct messages and eventually normal chann
   - Node.js, Fastify, SQLite3.
 
 ## Credits
-- Icons are sourced and provided by [css.gg](https://css.gg/app).
+- Icons are sourced and provided by [css.gg](https://css.gg/app) and [Font Awesome V4](https://fontawesome.com/v4/).
 - All packages included via npm in `package.json`.
 - Everything else including the CSS and JavaScript was written by me.
