@@ -28,6 +28,7 @@ require("./routes/auth");
 require("./routes/dms");
 require("./routes/users");
 require("./routes/developer");
+require("./routes/dynamics");
 
 // Setup handlers that need to hook to app or wss.
 require("./handlers/gateway/websocket");
