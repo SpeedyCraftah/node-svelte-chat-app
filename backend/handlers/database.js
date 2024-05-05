@@ -1,6 +1,18 @@
 const DB = require("better-sqlite3");
 const crypto = require("crypto");
 const bcrypt = require("bcrypt");
+const fsPromise = require("fs/promises");
+const fs = require("fs");
+const sanitizeFileName = require("sanitize-filename");
+
+// Make data directory if it doesn't exist.
+if (!fs.existsSync("../backend/data")) fs.mkdirSync("../backend/data");
+
+// Make directory for dynamic data if not exists.
+if (!fs.existsSync("../backend/data/dynamic")) fs.mkdirSync("../backend/data/dynamic");
+
+// Make directory for uploaded attachments if not exists.
+if (!fs.existsSync("../backend/data/dynamic/attachments")) fs.mkdirSync("../backend/data/dynamic/attachments");
 
 const db = new DB("../backend/data/db.sqlite");
 module.exports.db = db;
@@ -22,12 +34,12 @@ db.prepare(`CREATE TABLE IF NOT EXISTS messages(
     channel_id VARCHAR(36),
     user_id VARCHAR(36),
     date UNSIGNED BIGINT,
-    type UNSIGNED TINYINT,
     content TEXT
 )`).run();
 
-db.prepare(`CREATE TABLE IF NOT EXISTS attachments(
+db.prepare(`CREATE TABLE IF NOT EXISTS dynamics(
     id VARCHAR(36) PRIMARY KEY,
+    category TEXT,
     resource_id VARCHAR(36),
     created_date UNSIGNED BIGINT,
     size_bytes UNSIGNED BIGINT,
@@ -96,65 +108,73 @@ module.exports.users = {
     }
 };
 
-module.exports.attachments = {
-    create: (resource_id, size_bytes, mime_type, name) => {
+// Handles the storage of dynamic binary data such as images and attachments.
+module.exports.dynamics = {
+    createEntry: (id, category, resource_id, size_bytes, mime_type, name) => {
         const attachment = {
-            id: crypto.randomUUID(),
+            id,
+            category,
             created_date: Date.now(),
             resource_id,
             size_bytes,
             mime_type,
-            name
+            name: sanitizeFileName(name)
         };
 
-        db.prepare("INSERT INTO attachments(id,created_date,resource_id,size_bytes,mime_type,name) VALUES(?,?,?,?,?,?)").run(attachment.id, attachment.created_date, attachment.resource_id, attachment.size_bytes, attachment.mime_type, attachment.name);
+        db.prepare("INSERT INTO dynamics(id,category,created_date,resource_id,size_bytes,mime_type,name) VALUES(?,?,?,?,?,?,?)").run(attachment.id, attachment.category, attachment.created_date, attachment.resource_id, attachment.size_bytes, attachment.mime_type, attachment.name);
         return attachment;
+    },
+
+    deleteEntry: (id) => {
+        const entry = db.prepare("SELECT category FROM dynamics WHERE id = ?").get(id);
+        if (entry) db.prepare("DELETE FROM dynamics WHERE id = ?").run(id);
+
+        // Delete the file.
+        fsPromise.rm(`../data/dynamics/${entry.category}/${id}`).catch(() => null);
+    },
+
+    getEntriesByRID: (resource_id) => {
+        return db.prepare("SELECT * FROM dynamics WHERE resource_id = ?").all(resource_id);
+    },
+
+    getEntryByID: (id) => {
+        return db.prepare("SELECT * FROM dynamics WHERE id = ?").get(id);
+    },
+
+    deleteEntriesByRID: (resource_id) => {
+        const entries = db.prepare("SELECT id,category FROM dynamics WHERE resource_id = ?").all(resource_id);
+        if (entries.length) db.prepare("DELETE FROM dynamics WHERE resource_id = ?").run(resource_id);
+
+        // Delete the files.
+        for (const entry of entries) {
+            fsPromise.rm(`../data/dynamics/${entry.category}/${entry.id}`).catch(() => null);
+        }
     }
 };
 
 module.exports.messages = {
-    create: (user_id, channel_id, type, content) => {
+    create: (user_id, channel_id, content, id = crypto.randomUUID()) => {
         const message = {
-            id: crypto.randomUUID(),
+            id,
             user_id,
             channel_id,
-            type,
             date: Date.now(),
             content
         };
 
-        db.prepare("INSERT INTO messages(id, channel_id, user_id, date, type, content) VALUES(?, ?, ?, ?, ?, ?)").run(message.id, message.channel_id, message.user_id, message.date, message.type, message.content);
-
-        // If message is an image.
-        if (type === 2) {
-            const image = {
-                id: crypto.randomUUID(),
-                user_id,
-                message_id: message.id
-            };
-
-            // disabled for time being
-            //db.prepare("INSERT INTO images(id, user_id, message_id) VALUES(?, ?, ?)").run(image.id, image.user_id, image.message_id);
-
-            return { image, message };
-        }
-
-        return { image: null, message };
+        db.prepare("INSERT INTO messages(id, channel_id, user_id, date, content) VALUES(?, ?, ?, ?, ?)").run(message.id, message.channel_id, message.user_id, message.date, message.content);
+        return message;
     },
 
     delete: (id) => {
-        const messageType = db.prepare("SELECT type FROM messages WHERE id = ?").get(id);
-        if (typeof messageType !== "object") return;
-
         db.prepare("DELETE FROM messages WHERE id = ?").run(id);
-
-        // If message is an image.
-        if (messageType.type === 2) db.prepare("DELETE FROM images WHERE message_id = ?").run(id);
+        this.dynamics.deleteEntriesByRID(id);
     },
 
     deleteAll: (channel_id) => {
         db.prepare("DELETE FROM messages WHERE channel_id = ?").run(channel_id);
-        db.prepare("DELETE FROM images WHERE channel_id = ?").run(channel_id);
+
+        // TODO - add deletion for message attachments.
     },
 
     fetchAll: (channel_id) => {
