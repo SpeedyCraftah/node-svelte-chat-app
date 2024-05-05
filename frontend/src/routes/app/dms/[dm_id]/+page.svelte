@@ -1,13 +1,13 @@
 <script lang="ts">
-    // Import CSS components.
-    import "../../../../../static/css/font-awesome.css";
-
     import { fullscreenImageStore } from "../../app-global";
     import { currentChannelParsedMessagesStore, currentChannelStore, doDMMessageSend, usersTypingStore } from "./script";
     import { API } from "../../../../types/api";
     import { MessageTypeColour, UITypes } from "../../../../types/ui";
     import { accessibleClickHandler } from "../../misc/accessibility";
     import { readClientImageAsB64 } from "../../misc/attachments";
+
+    // Import CSS.
+    import "../../css/font-awesome.css";
 
     let messageTextContent: string = "";
     let messageAttachments: UITypes.MessageAttachment[] = [];
@@ -34,7 +34,7 @@
         const messageContent = messageTextContent.trim();
         if (!messageContent) return false;
 
-        messageTextContent= "";
+        messageTextContent = "";
 
         doDMMessageSend(messageContent, API.MessageType.TEXT);
     }
