@@ -20,8 +20,7 @@ module.exports.emitDMTypingSignal = (channel, user) => {
     }
 };
 
-module.exports.broadcastDMChannelNewMessage = (channel, messageObject, readbackNonce) => {
-    const message = messageObject.message;
+module.exports.broadcastDMChannelNewMessage = (channel, message, readbackNonce) => {
     const emittingUser = db.users.fetchByID(message.user_id);
     const targetUser = db.users.fetchByID(channel.user1_id === message.user_id ? channel.user2_id : channel.user1_id);
 
