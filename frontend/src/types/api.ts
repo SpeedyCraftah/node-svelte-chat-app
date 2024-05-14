@@ -14,19 +14,22 @@ export namespace API {
         avatar_url: string
     };
 
-    export enum MessageType {
-        TEXT = 1,
-        IMAGE = 2
+    export interface IncomingAttachment {
+        id: string,
+        size_bytes: number,
+        name: string,
+        mime_type: string,
+        url: string
     };
-    
+
     export interface IncomingDM {
         id: string,
         user_id: string,
         channel_id: string,
-        type: MessageType,
         content: string,
         date: number,
         nonce?: number,
+        attachments?: IncomingAttachment[],
 
         pending_data?: {
             status: UITypes.UserMessageStatus,
@@ -35,15 +38,15 @@ export namespace API {
         }
     };
 
-    export interface OutgoingDM {
-        nonce: number,
-        type: MessageType,
-        content: string
+    export interface OutgoingAttachment {
+        name: string,
+        size_bytes: number
     };
 
-    export interface OutgoingDMResponse {
-        id: string,
-        date: number
+    export interface OutgoingDM {
+        nonce: number,
+        content: string,
+        attachments?: OutgoingAttachment[]
     };
 
     export interface DMChannel {
@@ -55,7 +58,7 @@ export namespace API {
 
     export interface OpenDM {
         id: string,
-        user: User  
+        user: User
     };
 
     export type OpenDMs = OpenDM[];
