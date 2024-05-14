@@ -3,6 +3,7 @@ A full-stack chat app which supports direct messages and eventually normal chann
 
 ## Features
 - Direct messages and typing indicators.
+- Uploading of images and attachments.
 - Designed to be accessible and screen-reader friendly by complying with the [A11Y rules](https://www.a11yproject.com/).
 - Perfect Chromium Lighthouse scores thanks to Svelte's focus on performance and simplicity.
 
