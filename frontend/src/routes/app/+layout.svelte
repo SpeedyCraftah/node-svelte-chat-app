@@ -25,7 +25,7 @@
 <!-- svelte-ignore a11y-no-static-element-interactions -->
 <!-- svelte-ignore a11y-click-events-have-key-events -->
 <div id="image-fullscreen" class="image-fullscreen" style="display: {$fullscreenImageStore.active ? "flex" : "none"};" on:click={() => $fullscreenImageStore.active = false}>
-    <img src="http://127.0.0.1:8000/{$fullscreenImageStore.src}" alt="fullscreen">
+    <img src="{$fullscreenImageStore.src}" alt="fullscreen">
 </div>
 
 <div class="html-container">
