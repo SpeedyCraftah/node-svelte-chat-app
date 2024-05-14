@@ -1,10 +1,10 @@
 <script lang="ts">
     import { fullscreenImageStore } from "../../app-global";
-    import { currentChannelParsedMessagesStore, currentChannelStore, doDMMessageSend, usersTypingStore } from "./script";
+    import { currentChannelParsedMessagesStore, currentChannelStore, doDMMessageSend, fileUploadInProgressStore, inputAllowedStore, usersTypingStore, cancelCurrentUploadController } from "./script";
     import { API } from "../../../../types/api";
     import { MessageTypeColour, UITypes } from "../../../../types/ui";
     import { accessibleClickHandler } from "../../misc/accessibility";
-    import { readClientImageAsB64 } from "../../misc/attachments";
+    import { readClientImageAsB64, STATIC_PREVIEW_MIME_TYPES, GENERIC_FILE_PREVIEW_URL } from "../../misc/attachments";
 
     // Import CSS.
     import "../../css/font-awesome.css";
@@ -12,31 +12,32 @@
     let messageTextContent: string = "";
     let messageAttachments: UITypes.MessageAttachment[] = [];
 
+    async function handleSendPress() {
+        if (!inputAllowedStore) return false;
+
+        const messageContent = messageTextContent.trim();
+        if (!messageContent && !messageAttachments.length) return false;
+
+        // Don't wait for message send to complete if sending just text.     
+        if (messageAttachments.length) await doDMMessageSend(messageContent, messageAttachments);
+        else doDMMessageSend(messageContent);
+
+        messageTextContent = "";
+        messageAttachments = [];
+    }
+
     function handleInputTyping(event: KeyboardEvent) {
         if (event.key === "Enter" && !event.shiftKey) {
             event.preventDefault();
+            if (!inputAllowedStore) return false;
 
             // Send the message.
 
-            const messageContent = messageTextContent.trim();
-            if (!messageContent) return false;
-
-            messageTextContent= "";
-
-            doDMMessageSend(messageContent, API.MessageType.TEXT);
+            handleSendPress();
             return false;
         }
 
         return true;
-    }
-
-    function handleSendPress() {
-        const messageContent = messageTextContent.trim();
-        if (!messageContent) return false;
-
-        messageTextContent = "";
-
-        doDMMessageSend(messageContent, API.MessageType.TEXT);
     }
 
     async function handleFileUpload(files: FileList) {
@@ -48,7 +49,7 @@
             const attachment: UITypes.MessageAttachment = { file };
 
             // Show a preview for files which are images.
-            if (file.type.startsWith("image/")) {
+            if (STATIC_PREVIEW_MIME_TYPES.has(file.type)) {
                 attachment.preview_data = await readClientImageAsB64(file);
             }
 
@@ -59,16 +60,23 @@
 
     function handleFileDrop(event: DragEvent) {
         event.preventDefault();
+        if (!inputAllowedStore) return false;
+
         if (!event.dataTransfer || !event.dataTransfer.files.length) return;
         
         handleFileUpload(event.dataTransfer.files);
     }
 
     let uploadElement: HTMLInputElement;
-    function handleFileManualSubmit() {
+    async function handleFileManualSubmit() {
+        if (!inputAllowedStore) return false;
         if (!uploadElement.files || !uploadElement.files.length) return;
 
-        handleFileUpload(uploadElement.files);
+        await handleFileUpload(uploadElement.files);
+
+        // Clear the uploaded element.
+        // @ts-ignore
+        uploadElement.value = null;
     }
 
     // Scroll to bottom on new message.
@@ -99,13 +107,23 @@
                     <span>{bundle.user.username}</span>
                     <div class="chat-message-content">
                         {#each bundle.messages as message}
-                            {#if message.type === 1}
+                            {#if message.content}
                                 <p style="color: {MessageTypeColour[message.pending_data?.status || UITypes.UserMessageStatus.SENT]};">{message.content}</p>
-                            {:else if message.type === 2}
-                                <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-                                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                                <img src="{message.content}" alt="" loading="lazy" on:click={() => $fullscreenImageStore = { active: true, src: message.content }}/>
                             {/if}
+
+                            {#each (message.attachments || []) as attachment}
+                                {#if STATIC_PREVIEW_MIME_TYPES.has(attachment.mime_type)}
+                                    <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+                                    <!-- svelte-ignore a11y-click-events-have-key-events -->
+                                    <div>
+                                        <img src="{attachment.url}" alt="" loading="lazy" on:click={() => $fullscreenImageStore = { active: true, src: attachment.url }} />
+                                    </div>
+                                {:else}
+                                    <div>
+                                        <img src={GENERIC_FILE_PREVIEW_URL} alt="" loading="lazy" />
+                                    </div>
+                                {/if}
+                            {/each}
                         {/each}
                     </div>
                 </div>
@@ -117,23 +135,29 @@
         <span style="visibility: {typingText ? "visible" : "hidden"};">{typingText || "A"}</span>
 
         <div style="width: 100%; display: flex; justify-content: space-around;">
-            <textarea id="message-input" bind:value={messageTextContent} placeholder="Message {$currentChannelStore ? $currentChannelStore.user.first_name : "content"}" maxlength="500" on:keypress={handleInputTyping}></textarea>
-            <div class="chat-input-actions">
-                <i class="fa fa-upload" on:click={() => uploadElement.click()} on:keypress={accessibleClickHandler} tabindex=0 role="button"></i>
-                <i class="fa fa-paper-plane" on:click={handleSendPress} on:keypress={accessibleClickHandler} tabindex=0 role="button"></i>
+            <textarea id="message-input" disabled={!$inputAllowedStore} bind:value={messageTextContent} placeholder="Message {$currentChannelStore ? $currentChannelStore.user.first_name : "content"}" maxlength="500" on:keypress={handleInputTyping}></textarea>
+            <div class="chat-input-actions"  >
+                <i class="fa fa-upload" style:cursor={$inputAllowedStore ? "" : "not-allowed"} style:color={$inputAllowedStore ? "" : "rgb(81 81 81)"} on:click={() => $inputAllowedStore && uploadElement.click()} on:keypress={accessibleClickHandler} tabindex=0 role="button"></i>
+                <i class="fa fa-paper-plane" style:cursor={$inputAllowedStore ? "" : "not-allowed"} style:color={$inputAllowedStore ? "" : "rgb(81 81 81)"} on:click={handleSendPress} on:keypress={accessibleClickHandler} tabindex=0 role="button"></i>
             </div>
 
             <!-- Hidden upload element for icon. -->
             <input style="display: none;" type="file" multiple on:change={handleFileManualSubmit} bind:this={uploadElement} />
         </div>
 
-        <div class="chat-input-attachments" style="display: {messageAttachments.length ? "flex" : "none"};">
-            {#each messageAttachments as attachment, i}
-                <div class="chat-input-attachments-container" title={attachment.file.name}>
-                    <button on:click={() => { messageAttachments.splice(i, 1); messageAttachments = messageAttachments } }>🗑️</button>
-                    <img alt="preview" width="100" height="100" src={attachment.preview_data || "/logos/file-generic.png"} />
-                </div>
-            {/each}
+        <div class="chat-input-attachments-parent" style:display={messageAttachments.length ? "" : "none"}>
+            <div class="chat-input-attachments-overlay" style:display={$fileUploadInProgressStore ? "" : "none"}>
+                <h2>Upload In Progress</h2>
+                <button on:click={() => cancelCurrentUploadController()}>💾 Cancel Upload</button>
+            </div>
+            <div class="chat-input-attachments" style:pointer-events={$inputAllowedStore ? "" : "none"} style:filter={$fileUploadInProgressStore ? "blur(2px) grayscale(80%)" : ""}>
+                {#each messageAttachments as attachment, i}
+                    <div class="chat-input-attachments-container" title={attachment.file.name}>
+                        <button disabled={!$inputAllowedStore} on:click={() => { messageAttachments.splice(i, 1); messageAttachments = messageAttachments } }>🗑️</button>
+                        <img alt="preview" width="100" height="100" src={attachment.preview_data || "/logos/file-generic.png"} />
+                    </div>
+                {/each}
+            </div>
         </div>
     </div>
 </div>
@@ -189,6 +213,7 @@
         border: solid;
         border-color: #1c1c1f;
         border-radius: 12px;
+        position: relative;
     }
 
     .chat-input span {
@@ -222,8 +247,8 @@
     .chat-input-actions i {
         padding: 4px;
         font-size: 36px;
-        color: rgb(218, 218, 218);
         border: solid;
+        color: rgb(218, 218, 218);
         border-width: 1px;
         border-radius: 5px;
     }
@@ -247,6 +272,47 @@
         border-width: 1px;
         overflow-x: auto;
         position: relative;
+    }
+
+    .chat-input-attachments-parent {
+        overflow:hidden;
+        position: relative;
+    }
+
+    .chat-input-attachments-overlay {
+        background-color: rgba(31, 31, 31, 0.918);
+        position: absolute;
+        margin: 0 auto;
+        z-index: 2;
+        padding: 10px;
+        top: 50%;
+        right: 20px;
+        transform: translate(0, -50%);
+        border-radius: 6px;
+    }
+
+    .chat-input-attachments-overlay button {
+        margin: 0;
+        padding: 7px;
+        color: white;
+        width: 100%;
+        background-color: rgba(245, 45, 45, 0.808);
+        border: none;
+        text-wrap:nowrap;
+    }
+
+    .chat-input-attachments-overlay button:hover {
+        cursor: pointer;
+        background-color: rgba(196, 37, 37, 0.808);
+    }
+
+    .chat-input-attachments-overlay h2 {
+        margin: 0;
+        margin-bottom: 8px;
+        font-family: "Roboto", sans-serif;
+        color: rgb(218, 218, 218);
+        font-size: 20px;
+        text-wrap: nowrap;
     }
 
     .chat-input-attachments::-webkit-scrollbar {
@@ -353,15 +419,15 @@
         margin-bottom: 0;
     }
 
-    .chat-message-content img {
+    .chat-message-content div>img {
         margin-top: 9px;
-        max-width: 70%;
+        max-width: 60%;
         object-fit: cover;
     }
 
     @media only screen and (min-width: 1224px) {
         .chat-message-content img {
-            max-width: 800px;
+            max-width: 400px;
         }
     }
 </style>

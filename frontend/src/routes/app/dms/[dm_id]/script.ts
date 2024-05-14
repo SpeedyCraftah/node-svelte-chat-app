@@ -7,11 +7,14 @@ import { currentUser, hookAppWS, makeAPIRequest, users} from "../../app-global-s
 export let currentChannelStore: Writable<API.GenericChannel | null> = writable();
 export let currentChannelParsedMessagesStore: Writable<UITypes.DMBundle[]> = writable([]);
 export let usersTypingStore: Writable<UITypes.UserTyping[]> = writable([]);
+export let inputAllowedStore: Writable<boolean> = writable(true);
+export let fileUploadInProgressStore: Writable<boolean> = writable(false);
 
 let usersTyping: {[key: string]: UITypes.UserTyping} = {};
 let currentChannel: API.DMChannel;
 let currentChannelParsedMessages: UITypes.DMBundle[] = [];
 let currentChannelPendingMessages: {[key: number]: API.IncomingDM} = {};
+let currentUploadController: AbortController | undefined;
 
 function renderCurrentChannelMessages() {
     currentChannelParsedMessagesStore.set(currentChannelParsedMessages);
@@ -103,13 +106,15 @@ async function fetchLatestDMMessages() {
     }
 
     const messages: API.IncomingDM[] = await request.json();
+    console.log("Messages", messages);
+
     for (let i = messages.length - 1; i >= 0; i--) {
         const message = messages[i];
         addMessage(message);
     }
 
     renderCurrentChannelMessages();
-    console.log("Messages", currentChannelParsedMessages);
+    console.log("Parsed Messages", currentChannelParsedMessages);
 }
 
 export async function initDMPage(channel_id: string) {
@@ -136,14 +141,18 @@ export async function initDMPage(channel_id: string) {
     registerWebsocketEvents();
 }
 
-export async function doDMMessageSend(content: string, type: API.MessageType) {
-    const message: API.OutgoingDM = { content, type, nonce: Math.floor(Math.random() * 1000000) + 1 };
+export function cancelCurrentUploadController() {
+    currentUploadController?.abort();
+    currentUploadController = undefined;
+}
+
+export async function doDMMessageSend(content: string, attachments?: UITypes.MessageAttachment[]) {
+    const message: API.OutgoingDM = { content, nonce: Math.floor(Math.random() * 1000000) + 1 };
     const parsedMessage: API.IncomingDM = {
         channel_id: currentChannel.id,
         user_id: currentUser.id,
         id: "",
         content,
-        type: API.MessageType.TEXT,
         date: Date.now(),
         pending_data: {
             nonce: message.nonce,
@@ -151,9 +160,8 @@ export async function doDMMessageSend(content: string, type: API.MessageType) {
         }
     };
 
+    // TODO - check for pending messages leaks when sending/cancelling/erroring.
     currentChannelPendingMessages[message.nonce] = parsedMessage;
-    addMessage(parsedMessage);
-    renderCurrentChannelMessages();
 
     parsedMessage.pending_data!.timeout = setTimeout(() => {
         console.log("Gateway DM message readback timed out!", message.nonce);
@@ -161,7 +169,42 @@ export async function doDMMessageSend(content: string, type: API.MessageType) {
         renderCurrentChannelMessages();
     }, 10000);
 
-    const request = await makeAPIRequest("POST", `/api/dms/${currentChannel.id}/messages`, message);
+    let request: Response | null;
+
+    // Do a specialised attachment message send.
+    if (attachments && attachments.length) {
+        currentUploadController = new AbortController();
+
+        // Lock input to avoid interruption and enable upload mode.
+        inputAllowedStore.set(false);
+        fileUploadInProgressStore.set(true);
+
+        const data = new FormData();
+
+        // Append the actual attachments.
+        message.attachments = attachments.map(a => ({ name: a.file.name, size_bytes: a.file.size }));
+        renderCurrentChannelMessages();
+        data.append("", JSON.stringify(message));
+        
+        // Append the attachments to the form data.
+        for (const attachment of attachments) data.append("", attachment.file);
+
+        request = await makeAPIRequest("POST", `/api/dms/${currentChannel.id}/messages`, data, "", currentUploadController);
+
+        // Unlock the inputs and cancel upload.
+        inputAllowedStore.set(true);
+        fileUploadInProgressStore.set(false);
+        currentUploadController = undefined;
+    } 
+    
+    // Do a normal message send.
+    else {
+        addMessage(parsedMessage);
+        renderCurrentChannelMessages();
+
+        request = await makeAPIRequest("POST", `/api/dms/${currentChannel.id}/messages`, message);
+    }
+
     if (!request || !request.ok) {
         parsedMessage.pending_data!.status = UITypes.UserMessageStatus.FAILED;
         renderCurrentChannelMessages();
@@ -169,7 +212,16 @@ export async function doDMMessageSend(content: string, type: API.MessageType) {
         return;
     }
 
-    const messageConfirm: API.OutgoingDMResponse = await request.json();
+    const messageConfirm: API.IncomingDM = await request.json();
     parsedMessage.id = messageConfirm.id;
     parsedMessage.date = messageConfirm.date;
+
+    if (attachments && attachments.length) {
+        // Attach uploaded attachments to message.
+        parsedMessage.attachments = messageConfirm.attachments;
+
+        // Render message with attachments.
+        addMessage(parsedMessage);
+        renderCurrentChannelMessages();
+    }
 }

@@ -18,7 +18,12 @@ app.register(require("@fastify/cors"), {
     origin: ["http://localhost:5173", "http://localhost:4173"]
 });
 
-app.register(require('@fastify/multipart'));
+app.register(require('@fastify/multipart'), {
+    limits: {
+        fileSize: 20971520,
+        files: 5,
+    }
+});
 
 // Import and setup the middleware functions.
 require("./middleware/authentication");

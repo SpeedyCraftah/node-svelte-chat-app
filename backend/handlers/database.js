@@ -34,7 +34,8 @@ db.prepare(`CREATE TABLE IF NOT EXISTS messages(
     channel_id VARCHAR(36),
     user_id VARCHAR(36),
     date UNSIGNED BIGINT,
-    content TEXT
+    content TEXT,
+    has_attachments UNSIGNED TINYINT
 )`).run();
 
 db.prepare(`CREATE TABLE IF NOT EXISTS dynamics(
@@ -153,16 +154,17 @@ module.exports.dynamics = {
 };
 
 module.exports.messages = {
-    create: (user_id, channel_id, content, id = crypto.randomUUID()) => {
+    create: (user_id, channel_id, content, id = crypto.randomUUID(), has_attachments = false) => {
         const message = {
             id,
             user_id,
             channel_id,
             date: Date.now(),
-            content
+            content,
+            has_attachments: has_attachments ? 1 : 0
         };
 
-        db.prepare("INSERT INTO messages(id, channel_id, user_id, date, content) VALUES(?, ?, ?, ?, ?)").run(message.id, message.channel_id, message.user_id, message.date, message.content);
+        db.prepare("INSERT INTO messages(id, channel_id, user_id, date, content, has_attachments) VALUES(?, ?, ?, ?, ?, ?)").run(message.id, message.channel_id, message.user_id, message.date, message.content, message.has_attachments);
         return message;
     },
 
@@ -179,11 +181,24 @@ module.exports.messages = {
 
     fetchAll: (channel_id) => {
         const messages = db.prepare("SELECT * FROM messages WHERE channel_id = ? ORDER BY date DESC").all(channel_id);
+        for (let i = 0; i < messages.length; i++) {
+            const message = messages[i];
+            if (message.has_attachments) {
+                message.attachments = this.dynamics.getEntriesByRID(message.id);
+            }
+        }
+
         return messages;
     },
 
     fetchFew: (channel_id, limit) => {
-        const messages = db.prepare("SELECT * FROM messages WHERE channel_id = ? ORDER BY date DESC LIMIT ?").all(channel_id, limit);
+        const messages = db.prepare("SELECT * FROM messages WHERE channel_id = ? ORDER BY date DESC LIMIT ?").all(channel_id, limit)
+            .map(message => {
+                if (message.has_attachments) {
+                    message.attachments = this.dynamics.getEntriesByRID(message.id);
+                }
+            });
+        
         return messages;
     }
 };

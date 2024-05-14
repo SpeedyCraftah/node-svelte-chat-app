@@ -20,15 +20,18 @@ export function onAppReady(callback: AppReadyCallback) {
     else appReadyQueue.push(callback);
 }
 
-export async function makeAPIRequest(method: string, path: string, body?: any) {
-    const headers = { "X-Session": session, "Content-Type": "" };
-    if (typeof body === "object") {
+export async function makeAPIRequest(method: string, path: string, body?: any, contentType?: string, controllerAbort?: AbortController) {
+    const headers: ({ "X-Session": string, "Content-Type"?: string }) = { "X-Session": session };
+
+    if (contentType !== undefined) {
+        if (contentType) headers["Content-Type"] = contentType;
+    } else if (typeof body === "object") {
         headers["Content-Type"] = "application/json";
         body = JSON.stringify(body);
     }
 
     const request = await fetch(`http://${window.location.hostname}:8000${path}`, {
-        method, headers, body
+        method, headers, body, signal: controllerAbort ? controllerAbort.signal : undefined
     }).catch((e) => console.error("Request failed!", e));
     if (!request) return null;
 

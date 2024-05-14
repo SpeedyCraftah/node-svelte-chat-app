@@ -24,12 +24,15 @@ module.exports.broadcastDMChannelNewMessage = (channel, message, readbackNonce) 
     const emittingUser = db.users.fetchByID(message.user_id);
     const targetUser = db.users.fetchByID(channel.user1_id === message.user_id ? channel.user2_id : channel.user1_id);
 
+    // Convert the message to a safe format.
+    const safeMessage = getSafeDMMessage(message);
+
     // Send notification to the target users sockets.
     if (websockets.has(targetUser.id)) {
         for (const socket of Object.values(websockets.get(targetUser.id))) {
             sendToSocket(socket, {
                 op: "NEW_DM_MESSAGE",
-                data: { ...getSafeDMMessage(message) }
+                data: { ...safeMessage }
             });
         }
     }
@@ -39,7 +42,7 @@ module.exports.broadcastDMChannelNewMessage = (channel, message, readbackNonce) 
         for (const socket of Object.values(websockets.get(emittingUser.id))) {
             sendToSocket(socket, {
                 op: "NEW_DM_MESSAGE",
-                data: { ...getSafeDMMessage(message), nonce: readbackNonce }
+                data: { ...safeMessage, nonce: readbackNonce }
             });
         }
     }
