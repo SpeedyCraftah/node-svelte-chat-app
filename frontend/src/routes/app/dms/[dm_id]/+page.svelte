@@ -13,7 +13,7 @@
     let messageAttachments: UITypes.MessageAttachment[] = [];
 
     async function handleSendPress() {
-        if (!inputAllowedStore) return false;
+        if (!$inputAllowedStore) return false;
 
         const messageContent = messageTextContent.trim();
         if (!messageContent && !messageAttachments.length) return false;
@@ -29,7 +29,7 @@
     function handleInputTyping(event: KeyboardEvent) {
         if (event.key === "Enter" && !event.shiftKey) {
             event.preventDefault();
-            if (!inputAllowedStore) return false;
+            if (!$inputAllowedStore) return false;
 
             // Send the message.
 
@@ -60,16 +60,24 @@
 
     function handleFileDrop(event: DragEvent) {
         event.preventDefault();
-        if (!inputAllowedStore) return false;
+        if (!$inputAllowedStore) return false;
 
         if (!event.dataTransfer || !event.dataTransfer.files.length) return;
         
         handleFileUpload(event.dataTransfer.files);
     }
 
+    function handleFilePaste(event: ClipboardEvent) {
+        if (!event.clipboardData || !event.clipboardData.files.length) return;
+        event.preventDefault();
+
+        if (!$inputAllowedStore) return false;
+        handleFileUpload(event.clipboardData.files);
+    }
+
     let uploadElement: HTMLInputElement;
     async function handleFileManualSubmit() {
-        if (!inputAllowedStore) return false;
+        if (!$inputAllowedStore) return false;
         if (!uploadElement.files || !uploadElement.files.length) return;
 
         await handleFileUpload(uploadElement.files);
@@ -135,7 +143,7 @@
         <span style="visibility: {typingText ? "visible" : "hidden"};">{typingText || "A"}</span>
 
         <div style="width: 100%; display: flex; justify-content: space-around;">
-            <textarea id="message-input" disabled={!$inputAllowedStore} bind:value={messageTextContent} placeholder="Message {$currentChannelStore ? $currentChannelStore.user.first_name : "content"}" maxlength="500" on:keypress={handleInputTyping}></textarea>
+            <textarea id="message-input" disabled={!$inputAllowedStore} on:paste={handleFilePaste} bind:value={messageTextContent} placeholder="Message {$currentChannelStore ? $currentChannelStore.user.first_name : "content"}" maxlength="500" on:keypress={handleInputTyping}></textarea>
             <div class="chat-input-actions"  >
                 <i class="fa fa-upload" style:cursor={$inputAllowedStore ? "" : "not-allowed"} style:color={$inputAllowedStore ? "" : "rgb(81 81 81)"} on:click={() => $inputAllowedStore && uploadElement.click()} on:keypress={accessibleClickHandler} tabindex=0 role="button"></i>
                 <i class="fa fa-paper-plane" style:cursor={$inputAllowedStore ? "" : "not-allowed"} style:color={$inputAllowedStore ? "" : "rgb(81 81 81)"} on:click={handleSendPress} on:keypress={accessibleClickHandler} tabindex=0 role="button"></i>
