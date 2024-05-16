@@ -16,24 +16,32 @@ async function setupConnectionHandlers(ws, session, user) {
     });
     
     ws.on("error", console.error);
-    ws.on("message", (data) => {
+    ws.on("message", (payload) => {
         // Attempt to parse the message.
 
         try {
-            data = JSON.parse(data.toString());
+            payload = JSON.parse(payload.toString());
         } catch(err) {
-            data = null;
+            payload = null;
         }
 
-        if (!data || !data.op || !data.channel_type || typeof data.channel_type !== "number" || data.channel_type > 2 || data.channel_type < 1) {
+        if (!payload || !payload.op || !payload.data || typeof payload.data !== "object") {
             console.log(ws.id, "Invalid payload!");
             ws.close(1003);
             return;
         }
 
+        const data = payload.data;
+
         // Handle the received data from client.
-        switch (data.op) {
+        switch (payload.op) {
             case "TYPING_START": {
+                if (!data.channel_type || !data.channel_id || typeof data.channel_id !== "string") {
+                    console.log("Invalid payload!");
+                    ws.close(1003);
+                    return;
+                }
+
                 // If channel is a DM.
                 if (data.channel_type === 1) {
                     const channel = db.dm_channels.fetchByID(data.channel_id);
