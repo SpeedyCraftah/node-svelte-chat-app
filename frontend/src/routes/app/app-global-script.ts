@@ -38,6 +38,22 @@ export async function makeAPIRequest(method: string, path: string, body?: any, c
     return request;
 }
 
+function sendWSSignal(data: API.WSOutgoing.Event) {
+    ws.send(JSON.stringify(data));
+}
+
+export function sendTypingSignal(channelType: API.ChannelType, channelID: string) {
+    const data: API.WSOutgoing.EventTypingStart = {
+        op: "TYPING_START",
+        data: {
+            channel_type: channelType,
+            channel_id: channelID
+        }
+    };
+
+    sendWSSignal(data);
+}
+
 async function updateOpenDMs() {
     const request = await makeAPIRequest("GET", `/api/dms`);
     if (!request || !request.ok) {
