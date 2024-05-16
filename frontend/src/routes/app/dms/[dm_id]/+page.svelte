@@ -112,7 +112,7 @@
             <div class="chat-message">
                 <img class="chat-message-avatar" alt="message user avatar" src={bundle.user.avatar_url} />
                 <div class="chat-message-body">
-                    <span>{bundle.user.username}</span>
+                    <span class="chat-message-user-username">{bundle.user.username}</span>
                     <div class="chat-message-content">
                         {#each bundle.messages as message}
                             {#if message.content}
@@ -417,8 +417,8 @@
         overflow: hidden;
     }
 
-    .chat-message-body span {
-        font-weight: 500;
+    .chat-message-user-username {
+        font-weight: 550;
     }
 
     .chat-message-content {
