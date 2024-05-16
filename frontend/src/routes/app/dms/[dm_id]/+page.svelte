@@ -1,6 +1,6 @@
 <script lang="ts">
     import { fullscreenImageStore } from "../../app-global";
-    import { currentChannelParsedMessagesStore, currentChannelStore, doDMMessageSend, fileUploadInProgressStore, inputAllowedStore, usersTypingStore, cancelCurrentUploadController } from "./script";
+    import { currentChannelParsedMessagesStore, sendCurrentDMChannelTypingSignal, currentChannelStore, doDMMessageSend, fileUploadInProgressStore, inputAllowedStore, usersTypingStore, cancelCurrentUploadController } from "./script";
     import { API } from "../../../../types/api";
     import { MessageTypeColour, UITypes } from "../../../../types/ui";
     import { accessibleClickHandler } from "../../misc/accessibility";
@@ -11,6 +11,7 @@
 
     let messageTextContent: string = "";
     let messageAttachments: UITypes.MessageAttachment[] = [];
+    let typingSignalTimeout: number | null = null;
 
     async function handleSendPress() {
         if (!$inputAllowedStore) return false;
@@ -22,11 +23,27 @@
         if (messageAttachments.length) await doDMMessageSend(messageContent, messageAttachments);
         else doDMMessageSend(messageContent);
 
+        // Clear typing timeout, if any.
+        if (typingSignalTimeout !== null) {
+            clearTimeout(typingSignalTimeout);
+            typingSignalTimeout = null;
+        }
+
         messageTextContent = "";
         messageAttachments = [];
     }
 
     function handleInputTyping(event: KeyboardEvent) {
+        if (typingSignalTimeout === null) {
+            // Send a typing indicator signal.
+            sendCurrentDMChannelTypingSignal();
+
+            // Set a timeout to not send another one for 9 seconds or until a message is sent.
+            typingSignalTimeout = setTimeout(() => {
+                typingSignalTimeout = null;
+            }, 4000);
+        }
+
         if (event.key === "Enter" && !event.shiftKey) {
             event.preventDefault();
             if (!$inputAllowedStore) return false;

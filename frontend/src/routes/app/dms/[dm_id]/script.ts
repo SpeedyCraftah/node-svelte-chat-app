@@ -2,7 +2,7 @@ import { Writable, writable } from "svelte/store";
 import { API } from "../../../../types/api";
 import { UITypes } from "../../../../types/ui";
 import { PageType,  pageNameStore } from "../../app-global";
-import { currentUser, hookAppWS, makeAPIRequest, users} from "../../app-global-script";
+import { currentUser, hookAppWS, makeAPIRequest, sendTypingSignal, users} from "../../app-global-script";
 
 export let currentChannelStore: Writable<API.GenericChannel | null> = writable();
 export let currentChannelParsedMessagesStore: Writable<UITypes.DMBundle[]> = writable([]);
@@ -139,6 +139,10 @@ export async function initDMPage(channel_id: string) {
 
     fetchLatestDMMessages();
     registerWebsocketEvents();
+}
+
+export function sendCurrentDMChannelTypingSignal() {
+    sendTypingSignal(API.ChannelType.DM, currentChannel.id);
 }
 
 export function cancelCurrentUploadController() {
