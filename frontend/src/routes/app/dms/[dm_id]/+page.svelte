@@ -57,10 +57,21 @@
         return true;
     }
 
+    // Scroll to bottom on new message.
+    let channelMessagesRef: HTMLDivElement;
+    $: $currentChannelParsedMessagesStore, (() => {
+        if (!channelMessagesRef) return;
+        if ((channelMessagesRef.scrollTop + channelMessagesRef.clientHeight) === channelMessagesRef.scrollHeight)
+            setTimeout(() => channelMessagesRef.scrollTo(0, channelMessagesRef.scrollHeight), 100);
+    })();
+
     async function handleFileUpload(files: FileList) {
         if (messageAttachments.length + files.length >= 10) {
             return alert("Cannot upload more than 10 attachments in one message!");
         }
+
+        const currentScroll = (channelMessagesRef.scrollTop + channelMessagesRef.clientHeight);
+        const shouldScroll = currentScroll === channelMessagesRef.scrollHeight;
 
         for (const file of files) {
             const attachment: UITypes.MessageAttachment = { file };
@@ -72,6 +83,10 @@
 
             messageAttachments.push(attachment);
             messageAttachments = messageAttachments;
+        }
+
+        if (shouldScroll) {
+            setTimeout(() => channelMessagesRef.scrollTo(0, channelMessagesRef.scrollHeight), 50);
         }
     }
 
@@ -103,14 +118,6 @@
         // @ts-ignore
         uploadElement.value = null;
     }
-
-    // Scroll to bottom on new message.
-    let channelMessagesRef: HTMLDivElement;
-    $: $currentChannelParsedMessagesStore, (() => {
-        if (!channelMessagesRef) return;
-        if ((channelMessagesRef.scrollTop + channelMessagesRef.clientHeight) === channelMessagesRef.scrollHeight)
-            setTimeout(() => channelMessagesRef.scrollTo(0, channelMessagesRef.scrollHeight), 100);
-    })();
 
     let typingText: string = "";
     usersTypingStore.subscribe((value) => {
