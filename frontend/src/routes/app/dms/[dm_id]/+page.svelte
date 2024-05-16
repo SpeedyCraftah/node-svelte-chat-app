@@ -123,15 +123,29 @@
                                 {#if STATIC_PREVIEW_MIME_TYPES.has(attachment.mime_type)}
                                     <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
                                     <!-- svelte-ignore a11y-click-events-have-key-events -->
-                                    <div>
+                                    <div class="chat-message-body-image-container">
                                         <img src="{attachment.url}" alt="" loading="lazy" on:click={() => $fullscreenImageStore = { active: true, src: attachment.url }} />
-                                    </div>
-                                {:else}
-                                    <div>
-                                        <img src={GENERIC_FILE_PREVIEW_URL} alt="" loading="lazy" />
                                     </div>
                                 {/if}
                             {/each}
+
+                            {@const genericAttachments = message.attachments?.filter(a => !STATIC_PREVIEW_MIME_TYPES.has(a.mime_type))}
+                            {#if genericAttachments && genericAttachments.length}
+                                <div class="chat-message-generic-attachments">
+                                    {#each genericAttachments as attachment}
+                                        <div class="chat-message-generic-attachments-container">
+                                            <a href={attachment.url} download>
+                                                <i class="fa fa-download" ></i>
+                                            </a>
+                                            
+                                            <img title={attachment.name} src={GENERIC_FILE_PREVIEW_URL} alt="generic attachment" />
+                                            <div class="chat-message-generic-attachments-container-text-container">
+                                                <span title={attachment.name}>{attachment.name}</span>
+                                            </div>
+                                        </div>
+                                    {/each}
+                                </div>
+                            {/if}
                         {/each}
                     </div>
                 </div>
@@ -427,15 +441,55 @@
         margin-bottom: 0;
     }
 
-    .chat-message-content div>img {
+    .chat-message-body-image-container img {
         margin-top: 9px;
-        max-width: 60%;
+        max-width: 550px;
+        width: 83%;
         object-fit: cover;
     }
 
-    @media only screen and (min-width: 1224px) {
-        .chat-message-content img {
-            max-width: 400px;
-        }
+    .chat-message-generic-attachments {
+        margin-top: 5px;
+        display: flex;
+        flex-direction: row;
+        gap: 8px;
+        border-radius: 10px;
+        background-color: rgb(48, 48, 48);
+        padding: 6px;
+        max-width: fit-content;
+        overflow-x: auto;
+    }
+
+    .chat-message-generic-attachments-container {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .chat-message-generic-attachments-container img {
+        width: 85px;
+    }
+
+    .chat-message-generic-attachments-container i {
+        position: absolute;
+        color: rgb(0, 255, 64);
+        right: 7px;
+        font-size: 25px;
+        background-color: rgba(37, 37, 37, 0.678);
+        padding: 3px;
+        border-radius: 5px;
+    }
+
+    .chat-message-generic-attachments-container-text-container {
+        margin-top: 5px;
+        max-width: 90px;
+        text-wrap: nowrap;
+        overflow-x: hidden;
+        text-align: center;
+    }
+
+    .chat-message-generic-attachments-container-text-container span {
+        color: rgb(179, 179, 179);
+        font-size: 15px;
     }
 </style>

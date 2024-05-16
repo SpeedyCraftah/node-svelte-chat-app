@@ -352,12 +352,7 @@
 
     .image-fullscreen img {
         max-width: 85%;
+        max-height: 80%;
         object-fit: cover;
-    }
-
-    @media only screen and (min-width: 1824px) {
-        .image-fullscreen img {
-            max-width: 60%;
-        }
     }
 </style>
