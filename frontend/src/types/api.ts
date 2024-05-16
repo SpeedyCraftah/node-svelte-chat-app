@@ -66,7 +66,7 @@ export namespace API {
     };
 
     export type OpenDMs = OpenDM[];
-    
+
     export namespace WS {
         export interface Event {
             op: string,
@@ -87,6 +87,20 @@ export namespace API {
             data: {
                 channel_id: string,
                 user_id: string
+            }
+        }
+    };
+
+    export namespace WSOutgoing {
+        export interface Event {
+            op: string,
+            data: any
+        };
+
+        export interface EventTypingStart extends Event {
+            data: {
+                channel_type: API.ChannelType,
+                channel_id: string
             }
         }
     };
