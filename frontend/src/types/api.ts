@@ -5,6 +5,10 @@ export namespace API {
         USER = 1,
         BOT = 2
     };
+
+    export enum ChannelType {
+        DM = 1
+    };
     
     export interface User {
         id: string,
