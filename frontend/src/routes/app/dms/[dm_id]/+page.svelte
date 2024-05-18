@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { beforeUpdate } from "svelte";
     import { fullscreenImageStore } from "../../app-global";
     import { currentChannelParsedMessagesStore, sendCurrentDMChannelTypingSignal, currentChannelStore, doDMMessageSend, fileUploadInProgressStore, inputAllowedStore, usersTypingStore, cancelCurrentUploadController } from "./script";
     import { API } from "../../../../types/api";
@@ -59,11 +60,18 @@
 
     // Scroll to bottom on new message.
     let channelMessagesRef: HTMLDivElement;
+    let shouldScrollOnMessage = false;
     $: $currentChannelParsedMessagesStore, (() => {
         if (!channelMessagesRef) return;
-        if ((channelMessagesRef.scrollTop + channelMessagesRef.clientHeight) === channelMessagesRef.scrollHeight)
+        if (shouldScrollOnMessage)
             setTimeout(() => channelMessagesRef.scrollTo(0, channelMessagesRef.scrollHeight), 100);
     })();
+
+    // Keep status of scrollbar.
+    beforeUpdate(() => {
+        if (!channelMessagesRef) return;
+        shouldScrollOnMessage = channelMessagesRef.scrollTop > (channelMessagesRef.scrollHeight - channelMessagesRef.offsetHeight);
+    });
 
     async function handleFileUpload(files: FileList) {
         if (messageAttachments.length + files.length >= 10) {
