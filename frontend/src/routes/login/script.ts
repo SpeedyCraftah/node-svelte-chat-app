@@ -2,7 +2,7 @@ export async function onLoginSubmit() {
     const username = (document.getElementById("username") as HTMLInputElement).value;
     const password = (document.getElementById("password") as HTMLInputElement).value;
 
-    const request = await fetch("http://127.0.0.1:8000/api/login", {
+    const request = await fetch(`http://${window.location.hostname}:8000/api/login`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
