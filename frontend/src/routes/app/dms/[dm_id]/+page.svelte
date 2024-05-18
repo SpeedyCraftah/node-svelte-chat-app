@@ -178,7 +178,7 @@
     </div>
 
     <div class="chat-input" on:drop={handleFileDrop} on:dragover={(e) => e.preventDefault()} role="none">
-        <span style="visibility: {typingText ? "visible" : "hidden"};">{typingText || "A"}</span>
+        <span class="chat-typing-indicator" style="visibility: {typingText ? "visible" : "hidden"};">{typingText || "A"}</span>
 
         <div style="width: 100%; display: flex; justify-content: space-around;">
             <textarea id="message-input" disabled={!$inputAllowedStore} on:paste={handleFilePaste} bind:value={messageTextContent} placeholder="Message {$currentChannelStore ? $currentChannelStore.user.first_name : "content"}" maxlength="500" on:keypress={handleInputTyping}></textarea>
@@ -262,13 +262,23 @@
         position: relative;
     }
 
-    .chat-input span {
+    .chat-typing-indicator {
         visibility: hidden;
         font-style: italic;
         margin: 0;
         margin-left: 16px;
         font-size: 13px;
         color: gray;
+        animation: typing-pulse 3s infinite;
+    }
+
+    @keyframes typing-pulse {
+        0%, 100% {
+            color: #A9A9A9;
+        }
+        50% {
+            color: #D3D3D3;
+        }
     }
 
     .chat-input button {
