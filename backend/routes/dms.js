@@ -101,7 +101,7 @@ app.post("/api/dms/:channel_id/messages", {
                 await (new Promise((resolve, reject) => {
                     setTimeout(() => {
                         resolve();
-                    }, 3000);
+                    }, 1200);
                 }));
 
                 // Add the file to the database.
