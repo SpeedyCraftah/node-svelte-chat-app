@@ -20,7 +20,7 @@
     filter: brightness(90%);
 }
 
-.general-button-styled:disabled {
+.general-button:disabled {
     cursor: not-allowed;
     filter: brightness(75%);
 }
