@@ -28,4 +28,9 @@
         transform: scale(1.05);
         filter: brightness(90%);
     }
+
+    .button-style:disabled {
+        cursor: not-allowed;
+        filter: brightness(75%);
+    }
 </style>
