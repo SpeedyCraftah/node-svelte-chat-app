@@ -5,14 +5,14 @@ import { PageType,  pageNameStore } from "../../app-global";
 import { currentUser, hookAppWS, makeAPIRequest, sendTypingSignal, users} from "../../app-global-script";
 
 export let currentChannelStore: Writable<API.GenericChannel | null> = writable();
-export let currentChannelParsedMessagesStore: Writable<UITypes.DMBundle[]> = writable([]);
+export let currentChannelParsedMessagesStore: Writable<UITypes.MessageBundle[]> = writable([]);
 export let usersTypingStore: Writable<UITypes.UserTyping[]> = writable([]);
 export let inputAllowedStore: Writable<boolean> = writable(true);
 export let fileUploadInProgressStore: Writable<boolean> = writable(false);
 
 let usersTyping: {[key: string]: UITypes.UserTyping} = {};
 let currentChannel: API.DMChannel;
-let currentChannelParsedMessages: UITypes.DMBundle[] = [];
+let currentChannelParsedMessages: UITypes.MessageBundle[] = [];
 let currentChannelPendingMessages: {[key: number]: API.IncomingDM} = {};
 let currentUploadController: AbortController | undefined;
 
@@ -26,7 +26,7 @@ function renderCurrentTyping() {
 
 function addMessage(message: API.IncomingDM) {
     const bundles = currentChannelParsedMessages;
-    let bundle: UITypes.DMBundle = bundles[bundles.length - 1];
+    let bundle: UITypes.MessageBundle = bundles[bundles.length - 1];
     if (!bundle || bundle.user.id !== message.user_id) {
         bundle = { messages: [message], user: users[message.user_id] };
         bundles.push(bundle);
