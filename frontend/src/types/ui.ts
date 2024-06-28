@@ -1,7 +1,7 @@
 import type { API } from "./api";
 
 export namespace UITypes {
-    export interface DMBundle {
+    export interface MessageBundle {
         user: API.User,
         messages: API.IncomingDM[]
     };
