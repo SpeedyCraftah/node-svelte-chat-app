@@ -68,6 +68,11 @@ module.exports.users = {
         idKey: new Map()
     },
 
+    searchMultipleByUsername: (username, limit, excluded_user_id) => {
+        const result = db.prepare("SELECT * FROM users WHERE username LIKE (? || '%') AND id != ? LIMIT ?").all(username, excluded_user_id, limit);
+        return result;
+    },
+
     fetchByID: (id) => {
         let user = this.users.cache.usernameKey.get(id);
         if (!user) {

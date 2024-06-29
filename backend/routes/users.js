@@ -23,3 +23,27 @@ app.get("/api/users/:user_id", {}, (request, response) => {
 
     return response.status(200).send(getSafeUser(targetUser));
 });
+
+app.post("/api/users/search", {
+    schema: {
+        body: {
+            type: "object",
+            properties: {
+                limit: { type: "number", maximum: 20, minimum: 1 },
+                username: { type: "string", maxLength: 30, minLength: 2 }
+            },
+            required: []
+        }
+    },
+}, (request, response) => {
+    const limit = request.body.limit || 20;
+    if (request.body.username) {
+        const username = request.body.username;
+        const result = db.users.searchMultipleByUsername(username, limit, request.session.user.id).map(u => getSafeUser(u));
+        return response.status(200).send(result);
+    } 
+    
+    else {
+        return response.status(400).send();
+    }
+});
