@@ -27,6 +27,7 @@
 
     .page-navigation {
         padding: 10px;
+        padding-bottom: 3px;
         background-color: #1c1c1f;
         border: solid;
         flex-direction: column;
@@ -44,10 +45,11 @@
     }
 
     .navbar-account {
+        margin-top: 5px;
         border-top: solid;
         border-top-color: #555454;
         border-top-width: 1px;
-        padding-top: 10px;
+        padding-top: 5px;
         display: flex;
         flex-direction: row;
         align-items: center;
