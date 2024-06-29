@@ -6,6 +6,8 @@
     import { beforeNavigate } from "$app/navigation";
     import { accessibleClickHandler } from "./misc/accessibility";
 
+    import "./css/icons/menu.css";
+
     let toggleNavbar: boolean = true;
 
     onMount(() => {
@@ -46,9 +48,8 @@
 </div>
 
 <style>
-    @import url('/static/icons/menu.css');
-    
-    h1, h4, p, span {
+
+    h1 {
         font-family: "Roboto", sans-serif;
         color: rgb(235, 235, 235);
     }
@@ -67,94 +68,6 @@
         overflow-x: hidden;
         display: flex;
         flex-direction: row;
-    }
-
-    .page-navigation {
-        padding: 10px;
-        display: flex;
-        min-width: 150px;
-        max-width: 200px;
-        background-color: #1c1c1f;
-        border: solid;
-        flex-direction: column;
-        justify-content: space-between;
-        border-color: #1c1c1f;
-        border-radius: 12px;
-        word-wrap: break-word;
-        margin-right: 5px;
-    }
-
-    .page-navigation h4 {
-        color: rgb(156, 156, 156);
-        margin-top: 10px;
-        border-bottom: solid;
-        border-bottom-color: #555454;
-        border-bottom-width: 1px;
-        padding-bottom: 5px;
-        padding-left: 3px;
-        margin-bottom: 14px;
-    }
-
-    .navbar-dms {
-        display: flex;
-        flex-direction: column;
-    }
-
-    .navbar-dms-entry {
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        padding: 2px;
-        padding-left: 5px;
-        cursor: pointer;
-        margin-bottom: 2px;
-        overflow: hidden;
-    }
-
-    .navbar-dms-entry:hover {
-        border-radius: 10px;
-        background-color: rgb(36, 36, 36)
-    }
-
-    .navbar-dms-entry img {
-        width: 25px;
-        height: 25px;
-    }
-
-    .navbar-dms-entry span {
-        color: #c7c7c7;
-        margin-left: 10;
-    }
-
-    .navbar-account {
-        border-top: solid;
-        border-top-color: #555454;
-        border-top-width: 1px;
-        padding-top: 10px;
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .navbar-account span {
-        font-size: 17px;
-        margin-left: 12px;
-        color: rgb(211, 209, 209);
-        text-overflow: ellipsis;
-        overflow: hidden;
-    }
-
-    .navbar-account img {
-        width: 40px;
-        height: 40px;
-    }
-
-    .chat-container {
-        width: 100%;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
     }
 
     .page-header {
@@ -186,18 +99,6 @@
         overflow: auto;
     }
 
-    .chat-messages {
-        padding: 10px;
-        height: 100%;
-        
-        background-color: #1c1c1f;
-        border: solid;
-        border-color: #1c1c1f;
-        border-radius: 12px;
-        overflow-y: scroll;
-        overflow-x: auto;
-    }
-
     ::-webkit-scrollbar {
         width: 12px; /* Width of the scrollbar */
     }
@@ -212,131 +113,6 @@
     ::-webkit-scrollbar-thumb {
         background: #535252; /* Color of the scroll thumb */
         border-radius: 5px;
-    }
-
-    .chat-input {
-        margin-top: 5px;
-        padding: 8px;
-        display: flex;
-        justify-content: space-around;
-        align-items: center;
-        background-color: #1c1c1f;
-        border: solid;
-        border-color: #1c1c1f;
-        border-radius: 12px;
-    }
-
-    .chat-input button {
-        font-family: "Roboto", sans-serif;
-        font-size: 16px;
-        margin-left: 20px;
-        background-color: #2b292b;
-        border: solid;
-        border-color: #1c1c1f;
-        border-radius: 5px;
-        height: 90%;
-    }
-
-    .chat-input i {
-        --ggs: 1.7;
-        margin-left: 15px;
-        margin-right: 4px;
-        color: rgb(219, 219, 219);
-        transition: transform 0.05s ease;
-    }
-
-    .chat-input i:active {
-        transform: scale(1.5);
-    }
-
-    @media (hover: hover) {
-        .chat-input i:hover {
-            color: rgb(248, 248, 248);
-            --ggs: 1.8;
-        }
-    }
-
-    .chat-input textarea {
-        font-family: "Roboto", sans-serif;
-
-        resize: none;
-        border: solid;
-        border-color: #333538;
-        border-radius: 7px;
-        border-width: 1px;
-        height: 95%;
-
-        outline: none;
-        color: rgb(202, 202, 202);
-        background-color: #141414;
-        font-size: 17px;
-        padding: 8px;
-        width: 95%;
-    }
-
-    .chat-message {
-        margin-top: 10px;
-        padding: 10px;
-        display: flex;
-        justify-content: space-between;
-    }
-
-    .chat-message:first-child {
-        margin-top: 0;
-    }
-
-    .chat-message:hover {
-        border-radius: 10px;
-        background-color: rgb(36, 36, 36)
-    }
-
-    .chat-message-avatar {
-        width: 50px;
-        height: 50px;
-        border-radius: 100%;
-    }
-
-    .chat-message-body {
-        resize: none;
-        width: 100%;
-        margin-left: 20px;
-        overflow: hidden;
-    }
-
-    .chat-message-body span {
-        font-weight: 500;
-    }
-
-    .chat-message-content {
-        width: 100%;
-        overflow: hidden;
-        overflow-wrap: break-word;
-    }
-
-    .chat-message-content p {
-        color: rgb(207, 206, 206);
-        margin-bottom: 5px;
-        margin-top: 10px;
-    }
-
-    .chat-message-content p:first-child {
-        margin-top: 9px;
-    }
-
-    .chat-message-content p:last-child {
-        margin-bottom: 0;
-    }
-
-    .chat-message-content img {
-        margin-top: 9px;
-        max-width: 70%;
-        object-fit: cover;
-    }
-
-    @media only screen and (min-width: 1224px) {
-        .chat-message-content img {
-            max-width: 800px;
-        }
     }
 
     .image-fullscreen {
