@@ -4,7 +4,7 @@ const { app } = require("../index");
 // This middleware handles all authentication by restricting routes (such as /api/**) to logged in users only
 // and attaching the session of the user automatically to the request for handlers to use.
 
-app.addHook("preHandler", (request, reply, done) => {
+app.addHook("onRequest", (request, reply, done) => {
     if (!request.routeOptions.url) return done();
 
     // Check if route URLs do not need authentication.
