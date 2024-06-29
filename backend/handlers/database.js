@@ -99,13 +99,13 @@ module.exports.users = {
         return user;
     },
 
-    create: async (type, first_name, username, password_text) => {
+    create: async (type, first_name, username, password_text, avatar_url = "/avatars/avatar.jpg") => {
         const user = {
             id: crypto.randomUUID(),
             created_date: Date.now(),
             first_name, username, type,
             password_encoded: await bcrypt.hash(password_text, this.users.PASSWORD_SALT_ROUNDS),
-            avatar_url: "/avatars/avatar.jpg", // Add default avatar for now.
+            avatar_url: avatar_url, // Add default avatar for now.
             mfa_secret: null
         };
 
