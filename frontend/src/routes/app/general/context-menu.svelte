@@ -3,7 +3,7 @@
 
     let visible = false;
     let position = { x: 0, y: 0 };
-    let dimensions = { width: 250, height: 0 };
+    let dimensions = { width: 0, height: 0 };
     export let triggerEventHook: MouseEvent;
 
     function onPageClick() {
@@ -47,7 +47,7 @@
         position: absolute;
         display: block;
         background-color: rgb(53, 53, 53);
-        width: 250px;
+        width: 230px;
         border-radius: 5px;
     }
 
@@ -55,11 +55,12 @@
         display: flex;
         flex-direction: column;
         row-gap: 10px;
-        padding: 10px;
+        padding: 7px;
     }
 
     .context-menu-container > :global(div span) {
         font-family: "Roboto", sans-serif;
+        font-size: 14.5px;
         color: rgb(235, 235, 235);
         pointer-events: none;
         user-select: none;
@@ -71,7 +72,7 @@
     }
 
     .context-menu-container > :global(div) {
-        padding: 7px;
+        padding: 6px;
         border-radius: 2px;
     }
 
@@ -84,6 +85,6 @@
     }
 
     .context-menu-container > :global(div:hover) {
-        background-color: rgb(87, 87, 87);
+        background-color: rgba(255, 255, 255, 0.11);
     }
 </style>
