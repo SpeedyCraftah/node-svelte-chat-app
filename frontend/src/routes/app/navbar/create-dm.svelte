@@ -1,9 +1,10 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+    import { onMount } from "svelte";
     import { API } from "../../../types/api";
     import { makeAPIRequest, onAppReady } from "../app-global-script";
     import { accessibleClickHandler } from "../misc/accessibility";
     import OverviewPage from "./overview.svelte";
+    import { goto } from "$app/navigation";
 
     export let currentPage: any;
 
@@ -14,7 +15,7 @@
         const query: any = {};
         if (username) query["username"] = username;
 
-        const request = await makeAPIRequest("POST", "/api/users/search", query).catch(console.error);
+        const request = await makeAPIRequest("POST", "/api/users/search", query);
         if (!request || !request.ok) return;
 
         return await request.json();
@@ -53,6 +54,15 @@
             searchedUsers = defaultSearchedUsers;
         });
     });
+
+    async function openRequestedDM(user: API.User) {
+        const request = await makeAPIRequest("POST", `/api/users/${user.id}/dms/create`);
+        if (!request || !request.ok) return;
+        
+        const dmData: { id: string, user: API.User } = await request.json();
+        goto(`/app/dms/${dmData.id}`);
+        currentPage = OverviewPage;
+    }
 </script>
 
 <div>
@@ -67,7 +77,7 @@
 <div class="user-container-container">
     <div class="user-container">
         {#each searchedUsers as user}
-            <div class="user-entry" on:keypress={e => accessibleClickHandler(e)} role="button" tabindex="0">
+            <div class="user-entry" on:keypress={e => accessibleClickHandler(e)} on:click={() => openRequestedDM(user)} role="button" tabindex="0">
                 <img alt="user avatar" loading="lazy" src={user.avatar_url}>
                 <span>{user.username}</span>
             </div>
