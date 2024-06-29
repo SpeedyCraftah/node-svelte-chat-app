@@ -44,6 +44,8 @@ app.post("/api/users/search", {
     } 
     
     else {
-        return response.status(400).send();
+        // Get LIMIT random users to show with no filter.
+        const result = db.users.searchMultipleByUsername("", limit, request.session.user.id).map(u => getSafeUser(u));
+        return response.status(200).send(result);
     }
 });
