@@ -3,12 +3,31 @@
     import { API } from "../../../types/api";
     import { accessibleClickHandler } from "../misc/accessibility";
     import { openDmsStore } from "../app-global";
+    import { makeAPIRequest, updateOpenDMs } from "../app-global-script";
     import CreateDMPage from "./create-dm.svelte";
+    import ContextMenu from "../general/context-menu.svelte";
+    import { page } from '$app/stores';
 
     export let currentPage: any;
 
     function handleOpenDMClick(dm: API.OpenDM) {
         goto(`/app/dms/${dm.id}`);
+    }
+
+    let contextDMEntryHook: MouseEvent;
+    let contextDMEntry: API.OpenDM;
+    async function handleDMEntryContextClick(type: "hide") {
+        if (type === "hide") {
+            const request = await makeAPIRequest("POST", `/api/dms/${contextDMEntry.id}/hide`);
+            if (!request || !request.ok) return;
+
+            updateOpenDMs();
+
+            // If the current page is the DM that was hidden.
+            if ($page.url.pathname.startsWith(`/app/dms/${contextDMEntry.id}`)) {
+                goto("/app");
+            }
+        }
     }
 </script>
 
@@ -22,7 +41,7 @@
             <p>{!$openDmsStore ? "Loading..." : "None yet!"}</p>
         {:else}
             {#each $openDmsStore as dm}
-                <div class="navbar-dms-entry" on:click={() => handleOpenDMClick(dm)} on:keypress={e => accessibleClickHandler(e)} role="button" tabindex="0">
+                <div class="navbar-dms-entry" on:click={() => handleOpenDMClick(dm)} on:keypress={e => accessibleClickHandler(e)} on:contextmenu|preventDefault={e => { contextDMEntry = dm; contextDMEntryHook = e}} role="button" tabindex="0">
                     <img alt="dm avatar" loading="eager" src={dm.user.avatar_url}>
                     <span>{dm.user.username}</span>
                 </div>
@@ -30,6 +49,12 @@
         {/if}
     </div>
 </div>
+
+<ContextMenu bind:triggerEventHook={contextDMEntryHook}>
+    <div role="button" tabindex="0" on:keypress={accessibleClickHandler} on:click={() => handleDMEntryContextClick("hide")}>
+        <span><i class="fa fa-eye-slash" aria-hidden="true"></i> Hide Conversation</span>
+    </div>
+</ContextMenu>
 
 <style>
     .container {

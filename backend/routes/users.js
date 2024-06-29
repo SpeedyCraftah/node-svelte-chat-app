@@ -1,5 +1,6 @@
 const { app } = require("..");
 const db = require("../handlers/database");
+const { getDMVisibilityOfUser } = require("../misc/dms");
 const { getSafeUser } = require("../misc/safe-parser");
 
 app.post("/api/users/:user_id/dms/create", {}, (request, response) => {
@@ -12,6 +13,12 @@ app.post("/api/users/:user_id/dms/create", {}, (request, response) => {
     let dmChannel = db.dm_channels.fetchByMembers(request.session.user.id, targetUser.id);
     if (!dmChannel) {
         dmChannel = db.dm_channels.create(request.session.user.id, targetUser.id);
+    }
+    
+    else {
+        if (!getDMVisibilityOfUser(dmChannel, request.session.user)) {
+            db.dm_channels.updateVisibilityByID(dmChannel.id, dmChannel.user1_id === request.session.user.id ? true : dmChannel.user1_visible, dmChannel.user2_id === request.session.user.id ? true : dmChannel.user2_visible);
+        }
     }
 
     return response.status(200).send({ id: dmChannel.id, user: getSafeUser(targetUser) });

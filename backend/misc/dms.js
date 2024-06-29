@@ -17,3 +17,10 @@ module.exports.getDMTargetUser = (channel, session_user) => {
 module.exports.isMemberOfDMChannel = (channel, user) => {
     return channel.user1_id === user.id || channel.user2_id === user.id;
 };
+
+// Function get the visibility of the DMs of the desired user.
+module.exports.getDMVisibilityOfUser = (channel, user) => {
+    if (channel.user1_id === user.id) return !!channel.user1_visible;
+    else if (channel.user2_id === user.id) return !!channel.user2_visible;
+    else return -1;
+}

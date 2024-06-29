@@ -1,7 +1,7 @@
 const { app } = require("..");
 const db = require("../handlers/database");
 const { broadcastDMChannelNewMessage } = require("../handlers/gateway/channels");
-const { getDMTargetUser } = require("../misc/dms");
+const { getDMTargetUser, isMemberOfDMChannel } = require("../misc/dms");
 const { getSafeUser, getSafeDMMessage } = require("../misc/safe-parser");
 const fs = require("fs");
 const util = require("util");
@@ -21,9 +21,32 @@ app.get("/api/dms/:channel_id", {}, (request, response) => {
     return response.status(200).send({ id: channel.id, user: getSafeUser(targetUser) });
 });
 
+// TODO - convert to main config option route when implemented.
+app.post("/api/dms/:channel_id/hide", {}, (request, response) => {
+    const channel = db.dm_channels.fetchByID(request.params["channel_id"]);
+    if (!channel) return response.status(404).send();
+
+    if (channel.user1_id === request.session.user.id) {
+        if (channel.user1_visible) {
+            db.dm_channels.updateVisibilityByID(channel.id, false, channel.user2_visible);
+        }
+    }
+
+    else if (channel.user2_id === request.session.user.id) {
+        if (channel.user2_visible) {
+            db.dm_channels.updateVisibilityByID(channel.id, channel.user1_visible, false);
+        }
+    }
+
+    // User doesn't belong in this DM channel.
+    else return response.status(401).send();
+
+    return response.status(200).send();
+});
+
 app.get("/api/dms", {}, async (request, response) => {
     // Get the open DMs the user has and parse into response format.
-    const dmChannels = db.dm_channels.fetchBySingleMember(request.session.user.id)
+    const dmChannels = db.dm_channels.fetchBySingleMember(request.session.user.id, false)
         .map(c => ({ id: c.id, user: getSafeUser(db.users.fetchByID(c.user1_id === request.session.user.id ? c.user2_id : c.user1_id)) }));
     
     return response.status(200).send(dmChannels);
@@ -120,6 +143,11 @@ app.post("/api/dms/:channel_id/messages", {
     // Create message.
     const message = db.messages.create(request.session.user.id, channel.id, data.content, messageID, data.attachments && data.attachments.length !== 0);
     message.attachments = parsedAttachments;
+
+    // Make channel visible to all users (if needed).
+    if (!channel.user1_visible || !channel.user2_visible) {
+        db.dm_channels.updateVisibilityByID(channel.id, true, true);
+    }
 
     // Broadcast the message to connected client (if any).
     broadcastDMChannelNewMessage(channel, message, data.nonce);

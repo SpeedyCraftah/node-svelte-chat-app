@@ -51,7 +51,9 @@ db.prepare(`CREATE TABLE IF NOT EXISTS dynamics(
 db.prepare(`CREATE TABLE IF NOT EXISTS dm_channels(
     id VARCHAR(36) PRIMARY KEY,
     user1_id VARCHAR(36),
-    user2_id VARCHAR(36)
+    user2_id VARCHAR(36),
+    user1_visible TINYINT,
+    user2_visible TINYINT
 )`).run();
 
 db.prepare(`CREATE TABLE IF NOT EXISTS sessions(
@@ -216,9 +218,16 @@ module.exports.dm_channels = {
         return data;
     },
 
-    fetchBySingleMember: (user_id) => {
-        const data = db.prepare(`SELECT * FROM dm_channels WHERE user1_id = ? OR user2_id = ?`).all(user_id, user_id);
+    fetchBySingleMember: (user_id, ignore_visibility = true) => {
+        const data = ignore_visibility ? 
+            db.prepare(`SELECT * FROM dm_channels WHERE user1_id = ? OR user2_id = ?`).all(user_id, user_id) :
+            db.prepare(`SELECT * FROM dm_channels WHERE (user1_id = ? AND user1_visible = 1) OR (user2_id = ? AND user2_visible = 1)`).all(user_id, user_id);
+        
         return data;
+    },
+
+    updateVisibilityByID(id, user1_visible, user2_visible) {
+        db.prepare("UPDATE dm_channels SET user1_visible=?, user2_visible=? WHERE id = ?").run(Number(user1_visible), Number(user2_visible), id);
     },
 
     fetchByID: (id) => {
@@ -230,10 +239,12 @@ module.exports.dm_channels = {
         const channel = {
             id: crypto.randomUUID(),
             user1_id,
-            user2_id
+            user2_id,
+            user1_visible: 1,
+            user2_visible: 1
         };
 
-        db.prepare(`INSERT INTO dm_channels(id, user1_id, user2_id) VALUES(?, ?, ?)`).run(channel.id, user1_id, user2_id);
+        db.prepare(`INSERT INTO dm_channels(id, user1_id, user2_id, user1_visible, user2_visible) VALUES(?, ?, ?, ?, ?)`).run(channel.id, user1_id, user2_id, channel.user1_visible, channel.user2_visible);
         return channel;
     },
 
