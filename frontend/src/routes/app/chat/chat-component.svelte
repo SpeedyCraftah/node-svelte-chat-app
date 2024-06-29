@@ -480,8 +480,6 @@
         margin-top: 9px;
         max-width: 550px;
         max-height: 800px;
-        width: 83%;
-        height: 70%;
         object-fit: cover;
     }
 
