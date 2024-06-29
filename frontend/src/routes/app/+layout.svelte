@@ -1,12 +1,12 @@
 <script lang="ts">
-    import Navbar from "./navbar.svelte";
+    import Navbar from "./navbar/navbar.svelte";
     import { pageNameStore, currentUserStore, openDmsStore, fullscreenImageStore } from "./app-global";
     import { onMount } from "svelte";
     import { doNavigationCleanup, initApp } from "./app-global-script";
     import { beforeNavigate } from "$app/navigation";
     import { accessibleClickHandler } from "./misc/accessibility";
 
-    let toggleNavbar: boolean;
+    let toggleNavbar: boolean = true;
 
     onMount(() => {
         console.log("layout hello");
@@ -40,7 +40,7 @@
     </div>
 
     <div class="page-container">
-        <Navbar bind:toggleNavbar={toggleNavbar} currentUser={$currentUserStore} openDMs={$openDmsStore} />
+        <Navbar bind:toggleNavbar={toggleNavbar} currentUser={$currentUserStore} />
         <slot />
     </div>
 </div>
