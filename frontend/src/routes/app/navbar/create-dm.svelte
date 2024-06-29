@@ -1,6 +1,7 @@
 <script lang="ts">
+  import { onMount } from "svelte";
     import { API } from "../../../types/api";
-    import { makeAPIRequest } from "../app-global-script";
+    import { makeAPIRequest, onAppReady } from "../app-global-script";
     import { accessibleClickHandler } from "../misc/accessibility";
     import OverviewPage from "./overview.svelte";
 
@@ -8,13 +9,15 @@
 
     let usernameSearchText = "";
     let searchedUsers: API.User[] = [];
-    async function doUsernameSearch() {
-        const request = await makeAPIRequest("POST", "/api/users/search", {
-            username: usernameSearchText
-        }).catch(console.error);
+    let defaultSearchedUsers: API.User[] = [];
+    async function doUsernameSearch(username?: string) {
+        const query: any = {};
+        if (username) query["username"] = username;
+
+        const request = await makeAPIRequest("POST", "/api/users/search", query).catch(console.error);
         if (!request || !request.ok) return;
 
-        searchedUsers = await request.json();
+        return await request.json();
     }
     
     let searchTimeout: number;
@@ -22,7 +25,7 @@
 
     function onSearchUpdate() {
         if (searching || !usernameSearchText || usernameSearchText.length < 2) {
-            searchedUsers = [];
+            searchedUsers = defaultSearchedUsers;
             return;
         }
 
@@ -35,7 +38,7 @@
             searching = true;
             searchTimeout = 0;
 
-            await doUsernameSearch();
+            searchedUsers = await doUsernameSearch(usernameSearchText);
 
             searching = false;
         }, 500);
@@ -43,6 +46,13 @@
 
     $: usernameSearchText, onSearchUpdate();
 
+    onMount(() => {
+        onAppReady(async () => {
+            // Generate a list of generic default users.
+            defaultSearchedUsers = await doUsernameSearch();
+            searchedUsers = defaultSearchedUsers;
+        });
+    });
 </script>
 
 <div>
@@ -50,9 +60,11 @@
         <i class="fa fa-chevron-left" on:click={() => currentPage = OverviewPage} role="button" on:keypress={(e) => accessibleClickHandler(e)} tabindex="0"></i>
         Create New DM
     </h4>
-
+    
     <input bind:value={usernameSearchText} type="text" placeholder="Search by Username" />
+</div>
 
+<div class="user-container-container">
     <div class="user-container">
         {#each searchedUsers as user}
             <div class="user-entry" on:keypress={e => accessibleClickHandler(e)} role="button" tabindex="0">
@@ -75,16 +87,23 @@
         color: rgb(201, 201, 201);
         font-size: 14px;
         border: none;
-        border-radius: 2px;
+        border-radius: 3px;
         height: 20px;
+        width: 180px;
     }
 
     input[type=text]:focus {
         outline: none;
     }
 
+    .user-container-container {
+        margin-top: 10px;
+        flex-grow: 1;
+        flex-shrink: 1;
+        overflow-y: auto;
+    }
+
     .user-container {
-        margin-top: 15px;
         display: flex;
         flex-direction: column;
     }
@@ -94,9 +113,11 @@
         flex-direction: row;
         align-items: center;
         padding: 2px;
-        padding-left: 5px;
+        padding-left: 2px;
         cursor: pointer;
         margin-bottom: 2px;
+        margin-right: 8px;
+        max-width: 170px;
         overflow: hidden;
     }
 
@@ -114,6 +135,7 @@
     .user-entry span {
         color: #c7c7c7;
         margin-left: 10px;
+        white-space: nowrap;
     }
 
     h4 {
@@ -136,5 +158,21 @@
 
     h4 i:hover {
         cursor: pointer;
+    }
+
+    ::-webkit-scrollbar {
+        width: 9px; /* Width of the scrollbar */
+    }
+
+    ::-webkit-scrollbar-track {
+        background: #292828; /* Color of the track */
+        border-radius: 17px;
+        margin-top: 3px;
+        margin-bottom: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #535252; /* Color of the scroll thumb */
+        border-radius: 5px;
     }
 </style>
