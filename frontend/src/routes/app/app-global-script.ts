@@ -54,7 +54,7 @@ export function sendTypingSignal(channelType: API.ChannelType, channelID: string
     sendWSSignal(data);
 }
 
-async function updateOpenDMs() {
+export async function updateOpenDMs() {
     const request = await makeAPIRequest("GET", `/api/dms`);
     if (!request || !request.ok) {
         console.error(request);

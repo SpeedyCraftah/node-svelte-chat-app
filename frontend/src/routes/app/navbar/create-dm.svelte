@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import { API } from "../../../types/api";
-    import { makeAPIRequest, onAppReady } from "../app-global-script";
+    import { makeAPIRequest, onAppReady, updateOpenDMs } from "../app-global-script";
     import { accessibleClickHandler } from "../misc/accessibility";
     import OverviewPage from "./overview.svelte";
     import { goto } from "$app/navigation";
@@ -60,6 +60,7 @@
         if (!request || !request.ok) return;
         
         const dmData: { id: string, user: API.User } = await request.json();
+        updateOpenDMs(); // TODO - remove this once DM list is updated via gateway.
         goto(`/app/dms/${dmData.id}`);
         currentPage = OverviewPage;
     }
