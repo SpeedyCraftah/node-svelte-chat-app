@@ -6,8 +6,8 @@
     export let toggleNavbar: boolean;
 
     import "../css/font-awesome.css";
-    import CreateDMPage from "./create-dm.svelte";
-    let currentPage = CreateDMPage;
+    
+    let currentPage = OverviewPage;
 </script>
 
 <div id="navigation-bar" class="page-navigation" style="display: {toggleNavbar ? "flex" : "none"};">
