@@ -79,6 +79,7 @@
         padding-left: 5px;
         cursor: pointer;
         margin-bottom: 2px;
+        max-width: 165px;
         overflow: hidden;
     }
 
