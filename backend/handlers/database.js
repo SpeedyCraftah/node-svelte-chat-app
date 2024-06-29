@@ -235,13 +235,13 @@ module.exports.dm_channels = {
         return data;
     },
 
-    create: (user1_id, user2_id) => {
+    create: (user1_id, user2_id, user1_visible = 1, user2_visible = 1) => {
         const channel = {
             id: crypto.randomUUID(),
             user1_id,
             user2_id,
-            user1_visible: 1,
-            user2_visible: 1
+            user1_visible: Number(user1_visible),
+            user2_visible: Number(user2_visible)
         };
 
         db.prepare(`INSERT INTO dm_channels(id, user1_id, user2_id, user1_visible, user2_visible) VALUES(?, ?, ?, ?, ?)`).run(channel.id, user1_id, user2_id, channel.user1_visible, channel.user2_visible);

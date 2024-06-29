@@ -12,7 +12,7 @@ app.post("/api/users/:user_id/dms/create", {}, (request, response) => {
 
     let dmChannel = db.dm_channels.fetchByMembers(request.session.user.id, targetUser.id);
     if (!dmChannel) {
-        dmChannel = db.dm_channels.create(request.session.user.id, targetUser.id);
+        dmChannel = db.dm_channels.create(request.session.user.id, targetUser.id, true, false);
     }
     
     else {
