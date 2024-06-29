@@ -4,7 +4,7 @@
     let visible = false;
     let position = { x: 0, y: 0 };
     let dimensions = { width: 250, height: 0 };
-    export let onRightClickEvent: MouseEvent;
+    export let triggerEventHook: MouseEvent;
 
     function onPageClick() {
         visible = false;
@@ -25,7 +25,7 @@
         position = newPosition;
     }
 
-    $: onRightClickEvent, onContextMenuTrigger(onRightClickEvent);
+    $: triggerEventHook, onContextMenuTrigger(triggerEventHook);
 
     function hookContextMenuDimensions(element: HTMLDivElement) {
         dimensions = { width: element.offsetWidth, height: element.offsetHeight };
