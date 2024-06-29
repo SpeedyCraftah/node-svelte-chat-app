@@ -1,13 +1,13 @@
 const { app } = require("..");
 const db = require("../handlers/database");
+const { TargetUserHook } = require("../middleware/contextual");
 const { getDMVisibilityOfUser } = require("../misc/dms");
 const { getSafeUser } = require("../misc/safe-parser");
 
-app.post("/api/users/:user_id/dms/create", {}, (request, response) => {
-    const targetUser = db.users.fetchByID(request.params["user_id"]);
+app.post("/api/users/:user_id/dms/create", { onRequest: TargetUserHook }, (request, response) => {
+    const targetUser = request.targetUser;
 
     // If target user does not exist or is the same as the logged in user.
-    if (!targetUser) return response.status(404).send();
     if (targetUser.id === request.session.user.id) return response.status(400).send();
 
     let dmChannel = db.dm_channels.fetchByMembers(request.session.user.id, targetUser.id);
@@ -24,7 +24,7 @@ app.post("/api/users/:user_id/dms/create", {}, (request, response) => {
     return response.status(200).send({ id: dmChannel.id, user: getSafeUser(targetUser) });
 });
 
-app.get("/api/users/:user_id", {}, (request, response) => {
+app.get("/api/users/:user_id", { onRequest: TargetUserHook }, (request, response) => {
     const targetUser = db.users.fetchByID(request.params["user_id"]);
     if (!targetUser) return response.status(404).send();
 

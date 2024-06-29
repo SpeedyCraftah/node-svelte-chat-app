@@ -9,10 +9,10 @@ const { pipeline } = require('node:stream');
 const { multipartHook } = require("../middleware/multipart");
 const pump = util.promisify(pipeline)
 const crypto = require("crypto");
+const { DMChannelHook } = require("../middleware/contextual");
 
-app.get("/api/dms/:channel_id", {}, (request, response) => {
-    const channel = db.dm_channels.fetchByID(request.params["channel_id"]);
-    if (!channel) return response.status(404).send();
+app.get("/api/dms/:channel_id", { preHandler: DMChannelHook }, (request, response) => {
+    const channel = request.channel;
 
     // Get the target user of the DM channel.
     const targetUser = getDMTargetUser(channel, request.session.user);
@@ -22,9 +22,8 @@ app.get("/api/dms/:channel_id", {}, (request, response) => {
 });
 
 // TODO - convert to main config option route when implemented.
-app.post("/api/dms/:channel_id/hide", {}, (request, response) => {
-    const channel = db.dm_channels.fetchByID(request.params["channel_id"]);
-    if (!channel) return response.status(404).send();
+app.post("/api/dms/:channel_id/hide", { preHandler: DMChannelHook }, (request, response) => {
+    const channel = request.channel;
 
     if (channel.user1_id === request.session.user.id) {
         if (channel.user1_visible) {
@@ -38,9 +37,6 @@ app.post("/api/dms/:channel_id/hide", {}, (request, response) => {
         }
     }
 
-    // User doesn't belong in this DM channel.
-    else return response.status(401).send();
-
     return response.status(200).send();
 });
 
@@ -52,9 +48,8 @@ app.get("/api/dms", {}, async (request, response) => {
     return response.status(200).send(dmChannels);
 });
 
-app.get("/api/dms/:channel_id/messages", {}, (request, response) => {
-    const channel = db.dm_channels.fetchByID(request.params["channel_id"]);
-    if (!channel) return response.status(404).send();
+app.get("/api/dms/:channel_id/messages", { preHandler: DMChannelHook }, (request, response) => {
+    const channel = request.channel;
     if (request.session.user.id !== channel.user1_id && request.session.user.id !== channel.user2_id) return response.status(401).send();
 
     const messages = db.messages.fetchAll(channel.id);
@@ -85,11 +80,10 @@ app.post("/api/dms/:channel_id/messages", {
             required: ["content"]
         }
     },
-    preValidation: multipartHook
+    preValidation: multipartHook,
+    onRequest: DMChannelHook
 }, async (request, response) => {
-    const channel = db.dm_channels.fetchByID(request.params["channel_id"]);
-    if (!channel) return response.status(404).send();
-    
+    const channel = request.channel;
     const targetUser = getDMTargetUser(channel, request.session.user);
     if (!targetUser) return response.status(401).send();
 
