@@ -33,7 +33,7 @@
 
 <style>
     .container {
-        min-width: 150px;
+        min-width: 163px;
     }
 
     p, span {
@@ -55,9 +55,9 @@
 
     .page-navigation h4 i {
         cursor: pointer;
-        transition: opacity 0.1s ease-in-out;
-        opacity: 0;
-        margin-left: 2px;
+        transition: opacity 0.3s ease-in-out;
+        opacity: 0.45;
+        margin-left: 6px;
         font-size: 14px;
         color: rgb(223, 223, 223);
     }
