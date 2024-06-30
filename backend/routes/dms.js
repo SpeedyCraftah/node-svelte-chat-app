@@ -16,7 +16,6 @@ app.get("/api/dms/:channel_id", { onRequest: DMChannelHook }, (request, response
 
     // Get the target user of the DM channel.
     const targetUser = getDMTargetUser(channel, request.session.user);
-    if (!targetUser) return response.status(401).send();
 
     return response.status(200).send({ id: channel.id, user: getSafeUser(targetUser) });
 });
