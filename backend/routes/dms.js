@@ -47,7 +47,7 @@ app.get("/api/dms", {}, async (request, response) => {
     return response.status(200).send(dmChannels);
 });
 
-app.get("/api/dms/:channel_id/messages", {
+app.post("/api/dms/:channel_id/messages/fetch", {
     schema: {
         body: {
             type: "object",
