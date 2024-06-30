@@ -50,8 +50,6 @@ app.get("/api/dms", {}, async (request, response) => {
 
 app.get("/api/dms/:channel_id/messages", { onRequest: DMChannelHook }, (request, response) => {
     const channel = request.channel;
-    if (request.session.user.id !== channel.user1_id && request.session.user.id !== channel.user2_id) return response.status(401).send();
-
     const messages = db.messages.fetchAll(channel.id);
     return response.status(200).send(messages.map(m => getSafeDMMessage(m)));
 });
