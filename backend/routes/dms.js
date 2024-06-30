@@ -47,9 +47,38 @@ app.get("/api/dms", {}, async (request, response) => {
     return response.status(200).send(dmChannels);
 });
 
-app.get("/api/dms/:channel_id/messages", { onRequest: DMChannelHook }, (request, response) => {
+app.get("/api/dms/:channel_id/messages", {
+    schema: {
+        body: {
+            type: "object",
+            properties: {
+                limit: { type: "number", maximum: 200, minimum: 1 },
+                pivot: {
+                    type: "object",
+                    properties: {
+                        date: { type: "number", minimum: 0 },
+                        direction: { type: "number", enum: [1, -1] }
+                    },
+                    required: ["date", "direction"]
+                },
+            }
+        }
+    },
+    onRequest: DMChannelHook
+}, (request, response) => {
     const channel = request.channel;
-    const messages = db.messages.fetchAll(channel.id);
+    const limit = request.body.limit || 100;
+    let messages;
+
+    if (request.body.pivot) {
+        const pivot = request.body.pivot;
+        const direction = pivot.direction === 1 ? true : false;
+        messages = db.messages.fetchFewByPivot(channel.id, limit, pivot.date, direction);
+    }
+
+    // Fetch most recent X messages.
+    else messages = db.messages.fetchFew(channel.id, limit);
+
     return response.status(200).send(messages.map(m => getSafeDMMessage(m)));
 });
 
