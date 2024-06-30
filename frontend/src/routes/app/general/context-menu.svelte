@@ -32,7 +32,6 @@
     }
 
     function accessibleMenuExit(event: KeyboardEvent) {
-        console.log(event);
         if (event.key === "Escape") visible = false;
     }
 </script>
