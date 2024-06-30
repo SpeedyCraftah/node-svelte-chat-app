@@ -207,6 +207,17 @@ module.exports.messages = {
             });
         
         return messages;
+    },
+
+    fetchFewByPivot: (channel_id, limit, date_pivot, pivot_direction = false) => {
+        const messages = db.prepare(`SELECT * FROM messages WHERE channel_id = ? AND date ${pivot_direction ? ">" : "<"} ? ORDER BY date DESC LIMIT ?`).all(channel_id, date_pivot, limit)
+            .map(message => {
+                if (message.has_attachments) {
+                    message.attachments = this.dynamics.getEntriesByRID(message.id);
+                }
+            });
+        
+        return messages;
     }
 };
 
