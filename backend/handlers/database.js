@@ -204,6 +204,8 @@ module.exports.messages = {
                 if (message.has_attachments) {
                     message.attachments = this.dynamics.getEntriesByRID(message.id);
                 }
+
+                return message;
             });
         
         return messages;
@@ -215,6 +217,8 @@ module.exports.messages = {
                 if (message.has_attachments) {
                     message.attachments = this.dynamics.getEntriesByRID(message.id);
                 }
+
+                return message;
             });
         
         return messages;
