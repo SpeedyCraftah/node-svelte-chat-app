@@ -11,7 +11,7 @@ const pump = util.promisify(pipeline)
 const crypto = require("crypto");
 const { DMChannelHook } = require("../middleware/contextual");
 
-app.get("/api/dms/:channel_id", { preHandler: DMChannelHook }, (request, response) => {
+app.get("/api/dms/:channel_id", { onRequest: DMChannelHook }, (request, response) => {
     const channel = request.channel;
 
     // Get the target user of the DM channel.
@@ -22,7 +22,7 @@ app.get("/api/dms/:channel_id", { preHandler: DMChannelHook }, (request, respons
 });
 
 // TODO - convert to main config option route when implemented.
-app.post("/api/dms/:channel_id/hide", { preHandler: DMChannelHook }, (request, response) => {
+app.post("/api/dms/:channel_id/hide", { onRequest: DMChannelHook }, (request, response) => {
     const channel = request.channel;
 
     if (channel.user1_id === request.session.user.id) {
@@ -48,7 +48,7 @@ app.get("/api/dms", {}, async (request, response) => {
     return response.status(200).send(dmChannels);
 });
 
-app.get("/api/dms/:channel_id/messages", { preHandler: DMChannelHook }, (request, response) => {
+app.get("/api/dms/:channel_id/messages", { onRequest: DMChannelHook }, (request, response) => {
     const channel = request.channel;
     if (request.session.user.id !== channel.user1_id && request.session.user.id !== channel.user2_id) return response.status(401).send();
 
