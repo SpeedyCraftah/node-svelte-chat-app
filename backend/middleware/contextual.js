@@ -24,7 +24,7 @@ module.exports.TargetUserHook = (request, reply, done) => {
     const userID = request.params["user_id"];
     if (!userID) return reply.status(404).send();
 
-    const user = db.users.fetchByID(channelID);
+    const user = db.users.fetchByID(userID);
     if (!user) return reply.status(404).send();
 
     // Name is very explicit to avoid confusion with session#user.
