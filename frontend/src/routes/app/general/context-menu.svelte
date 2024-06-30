@@ -30,6 +30,11 @@
     function hookContextMenuDimensions(element: HTMLDivElement) {
         dimensions = { width: element.offsetWidth, height: element.offsetHeight };
     }
+
+    function accessibleMenuExit(event: KeyboardEvent) {
+        console.log(event);
+        if (event.key === "Escape") visible = false;
+    }
 </script>
 
 {#if visible}
@@ -40,7 +45,7 @@
 </div>
 {/if}
 
-<svelte:window on:resize={() => visible = false} on:contextmenu|capture={() => visible = false} on:click={onPageClick} />
+<svelte:window on:keyup={accessibleMenuExit} on:resize={() => visible = false} on:contextmenu|capture={() => visible = false} on:click={onPageClick} />
 
 <style>
     .context-menu {
