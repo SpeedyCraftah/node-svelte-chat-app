@@ -5,6 +5,7 @@
     let position = { x: 0, y: 0 };
     let dimensions = { width: 0, height: 0 };
     export let triggerEventHook: MouseEvent;
+    export let customClass = "";
 
     function onPageClick() {
         visible = false;
@@ -38,7 +39,7 @@
 
 {#if visible}
 <div use:hookContextMenuDimensions class="context-menu" style="top: {position.y}px; left: {position.x}px;">
-    <div class="context-menu-container">
+    <div class="context-menu-container {customClass}">
         <slot />
     </div>
 </div>
@@ -89,6 +90,6 @@
     }
 
     .context-menu-container > :global(div:hover) {
-        background-color: rgba(255, 255, 255, 0.11);
+        background-color: rgba(255, 255, 255, 0.082);
     }
 </style>
