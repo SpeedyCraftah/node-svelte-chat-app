@@ -4,35 +4,25 @@ import { UITypes } from "../../../../types/ui";
 import { PageType,  pageNameStore } from "../../app-global";
 import { currentUser, hookAppWS, makeAPIRequest, sendTypingSignal, users} from "../../app-global-script";
 
+export let currentChannelMessagesStore: Writable<API.IncomingDM[]> = writable([]);
 export let currentChannelStore: Writable<API.GenericChannel | null> = writable();
-export let currentChannelParsedMessagesStore: Writable<UITypes.MessageBundle[]> = writable([]);
 export let usersTypingStore: Writable<UITypes.UserTyping[]> = writable([]);
 export let inputAllowedStore: Writable<boolean> = writable(true);
 export let fileUploadInProgressStore: Writable<boolean> = writable(false);
 
 let usersTyping: {[key: string]: UITypes.UserTyping} = {};
 let currentChannel: API.DMChannel;
-let currentChannelParsedMessages: UITypes.MessageBundle[] = [];
+let currentChannelMessages: API.IncomingDM[] = [];
 let currentChannelPendingMessages: {[key: number]: API.IncomingDM} = {};
 let currentUploadController: AbortController | undefined;
+export let viewingUpToDateMessages = true;
 
 function renderCurrentChannelMessages() {
-    currentChannelParsedMessagesStore.set(currentChannelParsedMessages);
+    currentChannelMessagesStore.set(currentChannelMessages);
 }
 
 function renderCurrentTyping() {
     usersTypingStore.set(Object.values(usersTyping));
-}
-
-function addMessage(message: API.IncomingDM) {
-    const bundles = currentChannelParsedMessages;
-    let bundle: UITypes.MessageBundle = bundles[bundles.length - 1];
-    if (!bundle || bundle.user.id !== message.user_id) {
-        bundle = { messages: [message], user: users[message.user_id] };
-        bundles.push(bundle);
-    } else {
-        bundle.messages.push(message);
-    }
 }
 
 function registerWebsocketEvents() {
@@ -51,7 +41,6 @@ function registerWebsocketEvents() {
                         }
     
                         delete pendingMessage["pending_data"];
-                        delete currentChannelParsedMessages[event.data.nonce];
     
                         renderCurrentChannelMessages();
                         break;   
@@ -65,9 +54,13 @@ function registerWebsocketEvents() {
                     delete usersTyping[event.data.user_id];
                     renderCurrentTyping();
                 }
-                
-                addMessage(event.data);
-                renderCurrentChannelMessages();
+
+                // Add the message here.
+                if (viewingUpToDateMessages) {
+                    currentChannelMessages.unshift(event.data);
+                    renderCurrentChannelMessages();
+                }
+
                 break;
             }
 
@@ -98,29 +91,72 @@ function registerWebsocketEvents() {
     console.log("WS events hooked");
 }
 
+const DM_FETCH_SIZE = 50;
+export async function fetchDMMessages(direction: number) {
+    const pivotMessage = currentChannelMessages[direction === -1 ? currentChannelMessages.length - 1 : 0];
+    const request = await makeAPIRequest("POST", `/api/dms/${currentChannel.id}/messages/fetch`, {
+        limit: DM_FETCH_SIZE,
+        pivot: {
+            date: pivotMessage.date,
+            direction
+        }
+    });
+
+    if (!request || !request.ok) {
+        alert("Could not fetch latest messages!");
+        return true;
+    }
+
+    const newMessages: API.IncomingDM[] = await request.json();
+    console.log("Response", newMessages);
+
+    if (direction === 1 && newMessages.length !== DM_FETCH_SIZE) {
+        viewingUpToDateMessages = true;
+    }
+
+    if (!newMessages.length) {
+        return false;
+    }
+
+    if (direction === -1) {
+        currentChannelMessages = [...currentChannelMessages, ...newMessages];
+    } else {
+        currentChannelMessages = [...newMessages, ...currentChannelMessages];
+    }
+
+    renderCurrentChannelMessages();
+
+    return newMessages.length === DM_FETCH_SIZE;
+}
+
+export async function unloadDMMessages(direction: number) {
+    if (currentChannelMessages.length > 200) {
+        if (direction === -1) viewingUpToDateMessages = false;
+        currentChannelMessages = [...(direction === -1 ? currentChannelMessages.slice(DM_FETCH_SIZE) : currentChannelMessages.slice(0, -DM_FETCH_SIZE))];
+        renderCurrentChannelMessages();
+    }
+}
+
 async function fetchLatestDMMessages() {
-    const request = await makeAPIRequest("GET", `/api/dms/${currentChannel.id}/messages`);
+    const request = await makeAPIRequest("POST", `/api/dms/${currentChannel.id}/messages/fetch`, { limit: 100 });
     if (!request || !request.ok) {
         alert("Could not fetch latest messages!");
         return;
     }
 
     const messages: API.IncomingDM[] = await request.json();
+    currentChannelMessages = messages;
     console.log("Messages", messages);
 
-    for (let i = messages.length - 1; i >= 0; i--) {
-        const message = messages[i];
-        addMessage(message);
-    }
-
+    viewingUpToDateMessages = true;
     renderCurrentChannelMessages();
-    console.log("Parsed Messages", currentChannelParsedMessages);
+}
+
+export function resolveUserByID(user_id: string): API.User {
+    return users[user_id];
 }
 
 export async function initDMPage(channel_id: string) {
-    currentChannelParsedMessages = [];
-    currentChannelParsedMessagesStore.set([]);
-
     const channelRequest = await makeAPIRequest("GET", `/api/dms/${channel_id}`);
     if (!channelRequest || !channelRequest.ok) {
         alert("DM channel does not exist or request was unsuccessful.");
@@ -203,11 +239,14 @@ export async function doDMMessageSend(content: string, attachments?: UITypes.Mes
     
     // Do a normal message send.
     else {
-        addMessage(parsedMessage);
+        currentChannelMessages.unshift(parsedMessage);
         renderCurrentChannelMessages();
 
         request = await makeAPIRequest("POST", `/api/dms/${currentChannel.id}/messages`, message);
     }
+
+    // Potentially unload messages if context is too long.
+    if (viewingUpToDateMessages) unloadDMMessages(1);
 
     if (!request || !request.ok) {
         parsedMessage.pending_data!.status = UITypes.UserMessageStatus.FAILED;
@@ -225,7 +264,7 @@ export async function doDMMessageSend(content: string, attachments?: UITypes.Mes
         parsedMessage.attachments = messageConfirm.attachments;
 
         // Render message with attachments.
-        addMessage(parsedMessage);
+        currentChannelMessages.unshift(parsedMessage);
         renderCurrentChannelMessages();
     }
 }

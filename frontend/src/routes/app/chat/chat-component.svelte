@@ -2,23 +2,29 @@
     import type { Writable } from "svelte/store";
     import { MessageTypeColour, UITypes } from "../../../types/ui";
     import { GENERIC_FILE_PREVIEW_URL, STATIC_PREVIEW_MIME_TYPES, readClientImageAsB64 } from "../misc/attachments";
-    import { fullscreenImageStore } from "../app-global";
-    import { beforeUpdate } from "svelte";
+    import { fullscreenImageStore, currentUserStore } from "../app-global";
+    import { afterUpdate, beforeUpdate, onMount, tick } from "svelte";
     import { accessibleClickHandler } from "../misc/accessibility";
 
     // CSS imports.
     import "../css/font-awesome.css";
     import "../general/button.css";
+    import { afterNavigate, beforeNavigate } from "$app/navigation";
+    import MessageBundle from "./message-bundle.svelte";
+    import ContextMenu from "../general/context-menu.svelte";
+    import { API } from "../../../types/api";
 
     // Attribute exports.
     export let messageInputPlaceholder: string;
     export let typingUsers: Writable<UITypes.UserTyping[]>;
-    export let parsedMessages: Writable<UITypes.MessageBundle[]>;
+    export let parsedMessages: UITypes.MessageBundle[];
     export let allowInput: Writable<boolean>;
     export let onMessageSubmit: (content: string, attachments?: UITypes.MessageAttachment[]) => void;
     export let onTypingIndicatorTrigger: () => void;
     export let uploadInProgress: Writable<boolean>;
     export let onUploadCancel: () => void;
+    export let onContentLoadNeeded: (direction: number) => Promise<boolean>;
+    export let onPossibleContentUnload: (direction: number) => Promise<void>;
 
     let messageTextContent: string = "";
     let messageAttachments: UITypes.MessageAttachment[] = [];
@@ -68,17 +74,21 @@
 
     // Scroll to bottom on new message.
     let channelMessagesRef: HTMLDivElement;
-    let shouldScrollOnMessage = false;
-    $: $parsedMessages, (() => {
-        if (!channelMessagesRef) return;
-        if (shouldScrollOnMessage)
-            setTimeout(() => channelMessagesRef.scrollTo(0, channelMessagesRef.scrollHeight), 100);
+    $: parsedMessages, (async() => {
+        if (channelMessagesRef && parsedMessages.length) {
+            let shouldScrollOnMessage = (channelMessagesRef.scrollHeight - channelMessagesRef.clientHeight) === channelMessagesRef.scrollTop;
+            if (shouldScrollOnMessage) {
+                await tick();
+                channelMessagesRef.scrollTo(0, channelMessagesRef.scrollHeight);
+            }
+        }
     })();
 
-    // Keep status of scrollbar.
-    beforeUpdate(() => {
-        if (!channelMessagesRef) return;
-        shouldScrollOnMessage = channelMessagesRef.scrollTop > (channelMessagesRef.scrollHeight - channelMessagesRef.offsetHeight);
+    // Scrolls to the bottom on channel changes instead of retaining old scroll.
+    afterNavigate(() => {
+        if (channelMessagesRef) {
+            channelMessagesRef.scrollTo(0, channelMessagesRef.scrollHeight)
+        }
     });
 
     async function handleFileUpload(files: FileList) {
@@ -102,7 +112,8 @@
         }
 
         if (shouldScroll) {
-            setTimeout(() => channelMessagesRef.scrollTo(0, channelMessagesRef.scrollHeight), 50);
+            await tick();
+            channelMessagesRef.scrollTo(0, channelMessagesRef.scrollHeight);
         }
     }
 
@@ -136,60 +147,59 @@
     }
 
     let typingText: string = "";
-    typingUsers.subscribe((value) => {
-        const typingUsers = value;
-        if (!typingUsers.length) typingText = "";
+    $: typingUsers, (() => {
+        if (!$typingUsers.length) typingText = "";
         else {
-            if (typingUsers.length === 1) typingText = `${typingUsers[0].user.username} is typing...`;
-            else typingText = `${typingUsers.slice(0, -1).join(", ")} and ${typingUsers[typingUsers.length - 1].user.username} are typing...`;
+            if ($typingUsers.length === 1) typingText = `${$typingUsers[0].user.username} is typing...`;
+            else typingText = `${$typingUsers.slice(0, -1).join(", ")} and ${$typingUsers[$typingUsers.length - 1].user.username} are typing...`;
         }
-    });
+    })();
+
+    let lastScrollDirection = 1;
+    let maxScrollInDirection = true;
+    let ignoreScroll = false;
+    async function onMessagesScroll() {
+        if (!channelMessagesRef || ignoreScroll) return;
+        let maxScroll = channelMessagesRef.scrollHeight - channelMessagesRef.clientHeight;
+
+        // If there is no scrollbar.
+        if (!maxScroll) return;
+
+        let lastScroll = channelMessagesRef.scrollTop;
+        if (lastScroll <= maxScroll * 0.1) {
+            if (maxScrollInDirection && lastScrollDirection === -1) return;
+            maxScrollInDirection = false;
+            lastScrollDirection = -1;
+
+            ignoreScroll = true;
+            maxScrollInDirection = !(await onContentLoadNeeded(-1));
+            channelMessagesRef.scrollTo(0, lastScroll + ((channelMessagesRef.scrollHeight - channelMessagesRef.clientHeight) - maxScroll));
+            await onPossibleContentUnload(-1);
+            ignoreScroll = false;
+        }
+
+        else if (lastScroll >= maxScroll - (maxScroll * 0.1)) {
+            if (maxScrollInDirection && lastScrollDirection === 1) return;
+            maxScrollInDirection = false;
+            lastScrollDirection = 1;
+
+            ignoreScroll = true;
+            maxScrollInDirection = !(await onContentLoadNeeded(1));
+            maxScroll = channelMessagesRef.scrollHeight - channelMessagesRef.clientHeight;
+            await onPossibleContentUnload(1);
+            channelMessagesRef.scrollTo(0, lastScroll + ((channelMessagesRef.scrollHeight - channelMessagesRef.clientHeight) - maxScroll));
+            ignoreScroll = false;
+        }
+    }
+
+    let contextMessageHook: MouseEvent;
+    let contextMessage: API.IncomingDM;
 </script>
 
 <div class="chat-container">
-    <div id="chat-messages" class="chat-messages" bind:this={channelMessagesRef}>
-        {#each $parsedMessages as bundle}
-            <div class="chat-message">
-                <img class="chat-message-avatar" alt="message user avatar" src={bundle.user.avatar_url} />
-                <div class="chat-message-body">
-                    <span class="chat-message-user-username">{bundle.user.username}</span>
-                    <div class="chat-message-content">
-                        {#each bundle.messages as message}
-                            {#if message.content}
-                                <p style="color: {MessageTypeColour[message.pending_data?.status || UITypes.UserMessageStatus.SENT]};">{message.content}</p>
-                            {/if}
-
-                            {#each (message.attachments || []) as attachment}
-                                {#if STATIC_PREVIEW_MIME_TYPES.has(attachment.mime_type)}
-                                    <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-                                    <!-- svelte-ignore a11y-click-events-have-key-events -->
-                                    <div class="chat-message-body-image-container">
-                                        <img src="{attachment.url}" alt="" loading="lazy" on:click={() => $fullscreenImageStore = { active: true, src: attachment.url }} />
-                                    </div>
-                                {/if}
-                            {/each}
-
-                            {@const genericAttachments = message.attachments?.filter(a => !STATIC_PREVIEW_MIME_TYPES.has(a.mime_type))}
-                            {#if genericAttachments && genericAttachments.length}
-                                <div class="chat-message-generic-attachments">
-                                    {#each genericAttachments as attachment}
-                                        <div class="chat-message-generic-attachments-container">
-                                            <a href={attachment.url} download>
-                                                <i class="fa fa-download" ></i>
-                                            </a>
-                                            
-                                            <img title={attachment.name} src={GENERIC_FILE_PREVIEW_URL} alt="generic attachment" />
-                                            <div class="chat-message-generic-attachments-container-text-container">
-                                                <span title={attachment.name}>{attachment.name}</span>
-                                            </div>
-                                        </div>
-                                    {/each}
-                                </div>
-                            {/if}
-                        {/each}
-                    </div>
-                </div>
-            </div>
+    <div id="chat-messages" class="chat-messages" bind:this={channelMessagesRef} on:scrollend={onMessagesScroll} on:wheel={onMessagesScroll}>
+        {#each parsedMessages as bundle}
+            <MessageBundle bundle={bundle} onPreviewAttachmentClick={(attachment) => $fullscreenImageStore = { active: true, src: attachment.url }} onContextMenuHandler={(e, message) => { contextMessage = message; contextMessageHook = e}} />
         {/each}
     </div>
 
@@ -224,8 +234,35 @@
     </div>
 </div>
 
+<ContextMenu bind:triggerEventHook={contextMessageHook} customClass={"message-context-style"}>
+    {#if contextMessage.user_id === $currentUserStore.id}
+        <div class="delete-button" role="button" tabindex="0" on:keypress={accessibleClickHandler}>
+            <span><i class="fa fa-trash" aria-hidden="true"></i> Delete Message</span>
+        </div>
+    {/if}
+
+    <hr />
+
+    <div role="button" tabindex="0" on:click={() => navigator.clipboard.writeText(contextMessage.id)} on:keypress={accessibleClickHandler}>
+        <span><i class="fa fa-code" aria-hidden="true"></i> Copy Message ID</span>
+    </div>
+</ContextMenu>
+
 <style>
-    p, span {
+    :global(.message-context-style) .delete-button {
+        background-color: #eb0c0c94;
+    }
+
+    :global(.message-context-style) .delete-button i {
+        margin-left: 2px;
+        margin-right: 11px;
+    }
+
+    :global(.message-context-style) .delete-button:hover {
+        background-color: rgb(175, 35, 35)
+    }
+
+    span {
         font-family: "Roboto", sans-serif;
         color: rgb(235, 235, 235);
     }
@@ -421,110 +458,5 @@
         font-size: 17px;
         padding: 8px;
         width: 100%;
-    }
-
-    .chat-message {
-        margin-top: 10px;
-        padding: 10px;
-        display: flex;
-        justify-content: space-between;
-    }
-
-    .chat-message:first-child {
-        margin-top: 0;
-    }
-
-    .chat-message:hover {
-        border-radius: 10px;
-        background-color: rgb(36, 36, 36)
-    }
-
-    .chat-message-avatar {
-        width: 50px;
-        height: 50px;
-        border-radius: 100%;
-    }
-
-    .chat-message-body {
-        resize: none;
-        width: 100%;
-        margin-left: 20px;
-        overflow: hidden;
-    }
-
-    .chat-message-user-username {
-        font-weight: 550;
-    }
-
-    .chat-message-content {
-        width: 100%;
-        overflow: hidden;
-        overflow-wrap: break-word;
-    }
-
-    .chat-message-content p {
-        color: rgb(207, 206, 206);
-        margin-bottom: 5px;
-        margin-top: 10px;
-    }
-
-    .chat-message-content p:first-child {
-        margin-top: 9px;
-    }
-
-    .chat-message-content p:last-child {
-        margin-bottom: 0;
-    }
-
-    .chat-message-body-image-container img {
-        margin-top: 9px;
-        max-width: 550px;
-        max-height: 800px;
-        object-fit: cover;
-    }
-
-    .chat-message-generic-attachments {
-        margin-top: 5px;
-        display: flex;
-        flex-direction: row;
-        gap: 8px;
-        border-radius: 10px;
-        background-color: rgb(48, 48, 48);
-        padding: 6px;
-        max-width: fit-content;
-        overflow-x: auto;
-    }
-
-    .chat-message-generic-attachments-container {
-        position: relative;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .chat-message-generic-attachments-container img {
-        width: 85px;
-    }
-
-    .chat-message-generic-attachments-container i {
-        position: absolute;
-        color: rgb(0, 255, 64);
-        right: 7px;
-        font-size: 25px;
-        background-color: rgba(37, 37, 37, 0.678);
-        padding: 3px;
-        border-radius: 5px;
-    }
-
-    .chat-message-generic-attachments-container-text-container {
-        margin-top: 5px;
-        max-width: 90px;
-        text-wrap: nowrap;
-        overflow-x: hidden;
-        text-align: center;
-    }
-
-    .chat-message-generic-attachments-container-text-container span {
-        color: rgb(179, 179, 179);
-        font-size: 15px;
     }
 </style>
