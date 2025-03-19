@@ -1,3 +1,5 @@
+**Note:** This is a public mirror. Not much has changed however; issues & pull requests here are still accepted.
+
 # node-svelte-chat-app
 A full-stack chat app which supports direct messages and eventually normal channels written in Svelte and Node.js.
 
